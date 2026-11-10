@@ -1,0 +1,872 @@
+<!doctype html>
+<html lang="zh-Hant"><head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#2c4a3b">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="數學課">
+<meta property="og:title" content="爺孫數學課">
+<meta property="og:description" content="教孫子數學，從國中到大學微積分">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="icon" href="icon-192.png">
+<link rel="manifest" href="manifest.json">
+<style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px);box-sizing:border-box}body{margin:0}</style>
+</head><body>
+<title>爺孫數學課</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@700;900&family=STIX+Two+Text:ital,wght@0,600;1,600&family=Kalam:wght@700&display=swap">
+<style>
+/* 版面：教室一面牆。上＝孫子＋對話泡泡，中＝黑板（題目），下＝大按鈕（答案）。刻意單一主題（教室），不跟深色模式。 */
+:root{
+  --wall:#d9e6de; --wall-dot:#c8d9ce;
+  --board:#2c4a3b; --board-in:#335645; --frame:#8b5b36;
+  --chalk:#fbf8ee; --chalk-dim:#cfd9cf;
+  --paper:#fffdf5; --ink:#24302a; --ink-soft:#5b6b62;
+  --red:#d2382b; --gold:#f2b41c; --go:#ee7b30; --go-dark:#c25a17;
+  --ok:#3c9a58; --ok-dark:#2b7442; --no:#a9b2ad;
+  --card:#ffffff; --card-edge:#b9c7be;
+  --f-ui:"Noto Sans TC","PingFang TC","Microsoft JhengHei",sans-serif;
+  --f-math:"STIX Two Text","Times New Roman",serif;
+  --f-hand:"Kalam","Noto Sans TC",cursive;
+  color-scheme:light;
+}
+[hidden]{display:none!important}
+html,body{height:100%}
+html{font-size:clamp(22px,min(6vw,4.4vh),44px)}
+body{background:var(--wall);background-image:radial-gradient(var(--wall-dot) 1.5px,transparent 1.6px);background-size:22px 22px;color:var(--ink);font-family:var(--f-ui);font-weight:700;overflow:hidden;-webkit-tap-highlight-color:transparent;-webkit-user-select:none;user-select:none}
+button{font:inherit;color:inherit;border:0;background:none;cursor:pointer;touch-action:manipulation}
+button:focus-visible{outline:4px solid var(--gold);outline-offset:3px}
+#app{height:100%;max-width:960px;margin:0 auto;display:flex;flex-direction:column;gap:.35rem;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-block:.35rem;box-sizing:border-box}
+.math,.ans,.q{font-family:var(--f-math)}
+i{font-style:italic}
+.fr{display:inline-flex;flex-direction:column;vertical-align:middle;text-align:center;margin:0 .1em;line-height:1.05}
+.fr>span:first-child{border-bottom:.07em solid currentColor;padding:0 .12em}
+.fr>span{font-size:.82em}
+.sq{white-space:nowrap}.sq>span{border-top:.07em solid currentColor;padding:0 .08em}
+sup,sub{font-size:.6em;line-height:0}
+.lim{display:inline-flex;flex-direction:column;align-items:center;vertical-align:middle;line-height:1;margin-right:.15em}
+.lim small{font-size:.45em;margin-top:.1em}
+.int{display:inline-flex;align-items:center;vertical-align:middle}
+.int b{font-size:1.5em;font-weight:400;line-height:1}
+.int .lims{display:inline-flex;flex-direction:column;justify-content:space-between;font-size:.58em;height:2.6em;margin-left:-.1em;margin-right:.15em}
+.mat{display:inline-grid;gap:.05em .6em;padding:0 .35em;border-left:.08em solid currentColor;border-right:.08em solid currentColor;vertical-align:middle;line-height:1.15;text-align:center}
+.cnk{display:inline-flex;align-items:center}.cnk span{display:inline-flex;flex-direction:column;font-size:.55em;line-height:1.05;margin-left:.05em}
+
+/* 上方列 */
+.top{display:flex;align-items:center;gap:.4rem;min-height:1.9rem}
+.home{width:1.9rem;height:1.9rem;border-radius:50%;background:var(--card);box-shadow:0 .1rem 0 var(--card-edge);font-size:1rem;display:grid;place-items:center}
+.dots{flex:1;display:flex;justify-content:center;gap:.3rem}
+.dot{width:.7rem;height:.7rem;border-radius:50%;background:var(--card);border:.1rem solid var(--card-edge)}
+.dot.on{background:var(--gold);border-color:#c98f00}
+.dot.cur{background:var(--go);border-color:var(--go-dark);transform:scale(1.25)}
+.love{font-size:.9rem;background:var(--card);border-radius:1rem;padding:.1rem .5rem;box-shadow:0 .1rem 0 var(--card-edge);white-space:nowrap}
+
+/* 孫子＋泡泡 */
+.scene{display:flex;align-items:flex-end;gap:.3rem;position:relative}
+.kid{flex:none;width:4.6rem;height:5.6rem;position:relative}
+.kid svg{width:100%;height:100%;display:block;overflow:visible}
+.kid.big{width:8rem;height:9.6rem}
+.homewrap .kid.big{width:6.6rem;height:7.9rem}
+.homewrap{min-height:0}
+.bob{animation:bob 2.6s ease-in-out infinite}
+@keyframes bob{50%{transform:translateY(-3%)}}
+.jump{animation:jump .7s cubic-bezier(.3,1.6,.5,1)}
+@keyframes jump{30%{transform:translateY(-22%) scale(1.04)}60%{transform:translateY(0)}80%{transform:translateY(-6%)}}
+.tilt{animation:tilt .8s ease-in-out}
+@keyframes tilt{25%{transform:rotate(-7deg)}75%{transform:rotate(5deg)}}
+.bubble{flex:1;min-width:0;background:var(--card);border-radius:.8rem;padding:.35rem .55rem;font-size:1.15rem;line-height:1.3;position:relative;margin-bottom:1.4rem;box-shadow:0 .12rem 0 var(--card-edge);text-wrap:balance}
+.bubble::before{content:"";position:absolute;left:-.45rem;bottom:.5rem;border:.3rem solid transparent;border-right:.5rem solid var(--card);border-left:0}
+.bubble.pop{animation:pop .35s ease-out}
+@keyframes pop{0%{transform:scale(.85);opacity:.3}100%{transform:none;opacity:1}}
+.chip{position:absolute;left:50%;bottom:-.2rem;transform:translateX(-50%);background:var(--board);color:var(--chalk);font-size:.55rem;padding:.05rem .35rem;border-radius:.4rem;white-space:nowrap;font-family:var(--f-ui)}
+
+/* 黑板 */
+.board{flex:1 1 auto;min-height:0;background:radial-gradient(ellipse at 50% 40%,var(--board-in),var(--board));border:.35rem solid var(--frame);border-radius:.45rem;box-shadow:inset 0 0 1.2rem rgba(0,0,0,.35),0 .15rem 0 #6c4426;color:var(--chalk);display:flex;align-items:center;justify-content:center;overflow:hidden;position:relative;padding:.3rem}
+.q{font-size:2.3rem;text-align:center;line-height:1.35;white-space:nowrap;font-weight:600}
+.q .sub{font-size:.75em;color:var(--chalk-dim);font-family:var(--f-ui);font-weight:700}
+.q .emo{font-family:var(--f-ui);font-size:.9em;letter-spacing:.05em}
+.q svg{display:block;margin:0 auto;height:3.4em;width:auto;overflow:visible}
+
+/* 答案 */
+.answers{display:grid;grid-template-columns:1fr 1fr;gap:.4rem}
+.answers.one{grid-template-columns:1fr}
+.ans{background:var(--card);border-radius:.6rem;min-height:3.2rem;font-size:1.9rem;font-weight:600;box-shadow:0 .18rem 0 var(--card-edge);display:flex;align-items:center;justify-content:center;white-space:nowrap;overflow:hidden;padding:0 .3rem;position:relative;transition:transform .08s}
+.answers.one .ans{min-height:2.45rem;font-size:1.45rem}
+.ans:active{transform:translateY(.12rem);box-shadow:0 .06rem 0 var(--card-edge)}
+.ans.glow{animation:glow 1.6s ease-in-out 2}
+@keyframes glow{50%{box-shadow:0 .18rem 0 var(--card-edge),0 0 0 .2rem var(--gold)}}
+.ans.bad{background:#e7ebe8;color:var(--no);box-shadow:none;animation:shake .4s}
+.ans.bad::after{content:"✗";position:absolute;right:.3rem;top:.05rem;color:var(--red);font-family:var(--f-ui);font-size:.7em}
+@keyframes shake{25%{transform:translateX(-.25rem)}75%{transform:translateX(.25rem)}}
+.ans.good{background:var(--ok);color:#fff;box-shadow:0 .18rem 0 var(--ok-dark)}
+.ans.good::after{content:"";position:absolute;inset:.25rem;border:.2rem solid rgba(255,255,255,.85);border-radius:50%/60%;animation:ring .4s ease-out}
+@keyframes ring{from{transform:scale(1.5);opacity:0}}
+.ans.reveal{animation:glow 1s ease-in-out infinite;background:#e8f6ec}
+
+.big-btn{background:var(--go);color:#fff;border-radius:.8rem;min-height:3rem;font-size:1.5rem;font-family:var(--f-ui);font-weight:900;box-shadow:0 .2rem 0 var(--go-dark);width:100%;letter-spacing:.08em}
+.big-btn:active{transform:translateY(.15rem);box-shadow:0 .05rem 0 var(--go-dark)}
+.big-btn.green{background:var(--ok);box-shadow:0 .2rem 0 var(--ok-dark)}
+.soft-btn{background:var(--card);border-radius:.7rem;min-height:2.4rem;font-size:1.05rem;box-shadow:0 .15rem 0 var(--card-edge);font-family:var(--f-ui);font-weight:900;padding:0 .6rem}
+.row{display:flex;gap:.4rem}.row>*{flex:1}
+.after{display:flex;flex-direction:column;gap:.4rem}
+.after .ans{min-height:2.6rem}
+
+/* 首頁 */
+.homewrap{flex:1;display:flex;flex-direction:column;justify-content:center;gap:.5rem}
+.logo{text-align:center;font-size:1.6rem;font-weight:900;letter-spacing:.12em;color:var(--board)}
+.logo small{display:block;font-size:.55rem;letter-spacing:.3em;color:var(--ink-soft)}
+.homescene{display:flex;flex-direction:column;align-items:center;gap:.2rem}
+.homescene .bubble{margin:0;flex:none;max-width:100%;text-align:center}
+.homescene .bubble::before{left:50%;bottom:-.5rem;transform:translateX(-50%);border:.3rem solid transparent;border-top:.5rem solid var(--card);border-bottom:0}
+.stat{display:flex;justify-content:center;gap:.4rem;flex-wrap:wrap}
+.stat span{background:var(--card);border-radius:1rem;padding:.1rem .55rem;font-size:.85rem;box-shadow:0 .1rem 0 var(--card-edge)}
+.tiny{font-size:.6rem;color:var(--ink-soft);text-align:center;font-weight:700}
+
+/* 課程地圖 */
+.mapwrap{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;display:flex;flex-direction:column;gap:.5rem;padding-bottom:1rem}
+.stage-h{font-size:1.1rem;font-weight:900;color:var(--board);display:flex;align-items:center;gap:.3rem}
+.stage-h::after{content:"";flex:1;height:.1rem;background:var(--card-edge)}
+.units{display:grid;grid-template-columns:1fr 1fr;gap:.4rem}
+.unit{background:var(--card);border-radius:.6rem;min-height:2.8rem;box-shadow:0 .15rem 0 var(--card-edge);font-size:.95rem;font-weight:900;display:flex;align-items:center;justify-content:space-between;padding:.2rem .45rem;gap:.2rem;text-align:left}
+.unit .sc{font-family:var(--f-hand);color:var(--red);font-size:1.15rem}
+.unit.lock{background:#e6ebe8;color:var(--no);box-shadow:none}
+.unit.next{background:#fff1e3;box-shadow:0 .15rem 0 var(--go),0 0 0 .12rem var(--go) inset}
+
+/* 考試 */
+.examwrap{flex:1;display:flex;flex-direction:column;justify-content:center;gap:.5rem;align-items:center;position:relative}
+.testing{font-size:1.6rem;font-weight:900;color:var(--board);text-align:center}
+.pencil{display:inline-block;animation:write .5s ease-in-out infinite alternate}
+@keyframes write{to{transform:translate(.4rem,.15rem) rotate(8deg)}}
+.result{display:flex;align-items:flex-end;justify-content:center;gap:.2rem;width:100%}
+.paper{background:var(--paper);background-image:repeating-linear-gradient(transparent 0 1.05rem,#d9e3f0 1.05rem 1.1rem);width:9rem;max-width:62%;aspect-ratio:3/4;border-radius:.2rem;box-shadow:0 .25rem .6rem rgba(0,0,0,.18);transform:rotate(-4deg);position:relative;padding:.4rem .5rem;box-sizing:border-box;animation:slide .6s cubic-bezier(.2,1.3,.5,1)}
+@keyframes slide{from{transform:translateY(60%) rotate(-25deg);opacity:0}}
+.paper .ph{font-size:.6rem;line-height:1.35;color:var(--ink-soft);border-bottom:.06rem solid var(--ink-soft);padding-bottom:.1rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.paper .score{top:30%!important}
+.paper .score{position:absolute;left:0;right:0;top:22%;text-align:center;font-family:var(--f-hand);color:var(--red);font-size:4rem;line-height:1;animation:stampin .5s .5s both cubic-bezier(.3,1.8,.5,1)}
+.paper .score::after{content:"";position:absolute;left:50%;top:50%;width:1.25em;height:.95em;border:.08em solid var(--red);border-radius:50%;transform:translate(-50%,-55%) rotate(-8deg)}
+@keyframes stampin{from{transform:scale(2.4);opacity:0}}
+.paper .stamp{position:absolute;right:.25rem;bottom:.4rem;width:2.4rem;height:2.4rem;border:.12rem solid var(--red);border-radius:50%;color:var(--red);display:grid;place-items:center;font-size:.85rem;font-weight:900;transform:rotate(-14deg);animation:stampin .4s 1.1s both}
+.paper .note{position:absolute;left:.4rem;bottom:.45rem;font-size:.6rem;color:var(--red);font-weight:900}
+.examwrap .bubble{margin:0;flex:none;text-align:center;width:100%;box-sizing:border-box}
+.examwrap .bubble::before{display:none}
+
+/* 畢業 */
+.diploma{background:var(--paper);border:.2rem double #b88b2d;border-radius:.3rem;padding:.4rem .8rem;text-align:center;font-size:1.3rem;font-weight:900;color:#8a5e10;box-shadow:0 .2rem .5rem rgba(0,0,0,.15);animation:slide .7s cubic-bezier(.2,1.3,.5,1)}
+.diploma small{display:block;font-size:.65rem;color:var(--ink-soft);font-weight:700}
+
+/* 選稱呼 */
+.pick3{display:grid;grid-template-columns:1fr;gap:.45rem}
+.names{display:grid;grid-template-columns:1fr 1fr;gap:.45rem}
+.own{display:flex;flex-direction:column;gap:.45rem}
+#kidname{font:inherit;font-size:1.6rem;font-weight:900;text-align:center;padding:.3rem;border:.12rem solid var(--card-edge);border-radius:.6rem;background:var(--card);color:var(--ink);width:100%;box-sizing:border-box;-webkit-user-select:text;user-select:text}
+#kidname:focus{outline:4px solid var(--gold);outline-offset:2px}
+.row .soft-btn{padding:0 .3rem;white-space:nowrap;font-size:.95rem}
+.pick3 .big-btn{min-height:2.7rem}
+
+.heart{position:fixed;pointer-events:none;font-size:1.4rem;z-index:20;animation:float 1.6s ease-out forwards}
+@keyframes float{to{transform:translateY(-5rem) scale(1.4);opacity:0}}
+#fx{position:fixed;inset:0;pointer-events:none;z-index:0;width:100%;height:100%}
+#app{position:relative;z-index:1}
+.lesson{box-sizing:border-box;padding-bottom:.45rem}
+.tight .kid:not(.big){width:3.4rem;height:4.1rem}
+.tight .bubble{font-size:1rem}
+@media (prefers-reduced-motion:reduce){*{animation-duration:.01s!important;animation-iteration-count:1!important}}
+@media (min-aspect-ratio:4/3) and (min-width:700px){
+  .lesson{display:grid!important;grid-template-columns:minmax(0,1fr) minmax(0,1.15fr);grid-template-rows:auto auto 1fr;column-gap:.6rem}
+  .lesson .top{grid-column:1/-1}
+  .lesson .scene{grid-column:1;grid-row:2}
+  .lesson .board{grid-column:1;grid-row:3}
+  .lesson .answers,.lesson .after{grid-column:2;grid-row:2/4;align-content:center}
+}
+</style>
+
+<div id="app"></div>
+<canvas id="fx"></canvas>
+
+<script>
+'use strict';
+/* ================= 亂數（可重現：seed） ================= */
+let seed = (Date.now() % 2147483647) | 0;
+function rnd(){ seed = (seed + 0x6D2B79F5) | 0; let t = Math.imul(seed ^ (seed >>> 15), 1 | seed); t = (t + Math.imul(t ^ (t >>> 7), 61 | t)) ^ t; return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }
+const R = (a, b) => a + Math.floor(rnd() * (b - a + 1));
+const pick = a => a[Math.floor(rnd() * a.length)];
+const shuffle = a => { for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(rnd() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
+const sgn = () => rnd() < .5 ? -1 : 1;
+
+/* ================= 數學排版小工具 ================= */
+const M = '−';
+const N = n => n < 0 ? M + (-n) : '' + n;
+const P = n => n < 0 ? '(' + M + (-n) + ')' : '' + n;
+const X = '<i>x</i>';
+const sup = (b, e) => b + '<sup>' + e + '</sup>';
+const fr = (a, b) => `<span class="fr"><span>${a}</span><span>${b}</span></span>`;
+const sq = x => `<span class="sq">√<span>${x}</span></span>`;
+const gcd = (a, b) => { a = Math.abs(a); b = Math.abs(b); while (b) [a, b] = [b, a % b]; return a || 1; };
+function F(p, q){ if (q < 0) { p = -p; q = -q; } const g = gcd(p, q); p /= g; q /= g; if (q === 1) return N(p); return (p < 0 ? M : '') + fr(Math.abs(p), q); }
+const pm = a => (a < 0 ? ' − ' : ' + ') + Math.abs(a);
+function term(abs, d, v){ const co = (abs === 1 && d > 0) ? '' : String(abs); return d === 0 ? co : d === 1 ? co + v : co + sup(v, d); }
+function poly(c, v = X){ const n = c.length - 1; let s = ''; c.forEach((a, i) => { if (!a) return; const d = n - i; const t = term(Math.abs(a), d, v); s += s ? (a < 0 ? ' − ' : ' + ') + t : (a < 0 ? M : '') + t; }); return s || '0'; }
+const ev = (c, x) => c.reduce((s, a) => s * x + a, 0);
+const lim = (v, to) => `<span class="lim">lim<small>${v}→${to}</small></span>`;
+const integ = (lo, hi) => `<span class="int"><b>∫</b>${hi === undefined ? '' : `<span class="lims"><span>${hi}</span><span>${lo}</span></span>`}</span>`;
+const mat = rows => `<span class="mat" style="grid-template-columns:repeat(${rows[0].length},auto)">${rows.flat().map(v => `<span>${N(v)}</span>`).join('')}</span>`;
+const sub = t => `<div class="sub">${t}</div>`;
+const emo = t => `<span class="emo">${t}</span>`;
+const Cnk = (n, k) => `<span class="cnk">C<span><span>${n}</span><span>${k}</span></span></span>`;
+const fact = n => n <= 1 ? 1 : n * fact(n - 1);
+const comb = (n, k) => fact(n) / fact(k) / fact(n - k);
+const ex = e => sup('e', e);
+
+function tri(a, b, c){ // 直角三角形：a 直立邊、b 底邊、c 斜邊
+  const L = (x, y, t, anchor = 'middle') => `<text x="${x}" y="${y}" text-anchor="${anchor}" font-size="40" font-family="STIX Two Text,serif" font-weight="600" fill="${t === '?' ? '#f2b41c' : '#fbf8ee'}">${t}</text>`;
+  return `<svg viewBox="-10 0 330 200"><path d="M50 170 L50 25 L270 170 Z" fill="none" stroke="#fbf8ee" stroke-width="5" stroke-linejoin="round"/><path d="M50 148 H72 V170" fill="none" stroke="#fbf8ee" stroke-width="3"/>${L(24, 112, a, 'end')}${L(160, 210, b)}${L(178, 88, c, 'start')}</svg>`;
+}
+
+/* 出題：mk(題目, 正解, 誘答[], 額外) → 一定 4 個不重複選項 */
+function mk(q, ans, ds, extra = {}){
+  const o = [ans];
+  for (const d of ds) { if (o.length >= 4) break; if (d != null && !o.includes(d)) o.push(d); }
+  let g = 0; while (o.length < 4 && extra.fill && g++ < 80) { const f = extra.fill(); if (f != null && !o.includes(f)) o.push(f); }
+  return { q, ans, opts: shuffle(o), ask: extra.ask };
+}
+const jitter = () => pick([-3, -2, -1, 1, 2, 3, 4, 5, -5, 10, -10]);
+function mkN(q, ans, ds, extra = {}){ return mk(q, N(ans), ds.map(N), { fill: () => N(ans + jitter()), ...extra }); }
+const xq = sub(X + ' = ?');
+
+/* ================= 22 個單元：國一 → 大學 ================= */
+const STAGES = ['國一', '國二', '國三', '高一', '高二', '高三', '大學'];
+const LOOK = [0, 0, 0, 1, 1, 1, 2];
+const BASE = [
+ /* 國一 */
+ { s: 0, id: 'zf', t: '正負數', g: k => {
+   const m = [5, 9, 15, 20, 30][k]; let a = R(1, m) * (k ? sgn() : 1), b = -R(1, m);
+   if (k < 2) return mkN(`${N(a)} + ${P(b)} = ?`, a + b, [a - b, -(a + b), b - a]);
+   if (k < 4) return mkN(`${N(a)} − ${P(b)} = ?`, a - b, [a + b, -(a - b), b - a]);
+   const c = R(1, m) * sgn(); return mkN(`${N(a)} − ${P(b)} + ${P(c)} = ?`, a - b + c, [a + b + c, a - b - c, -(a - b + c)]);
+ }},
+ { s: 0, id: 'md', t: '乘除', g: k => {
+   const a = R(2, 9), b = R(2, 9);
+   if (k === 0) return mkN(`${P(-a)} × ${b} = ?`, -a * b, [a * b, -(a + b), -a * b + a]);
+   if (k === 1) return mkN(`${P(-a)} × ${P(-b)} = ?`, a * b, [-a * b, a + b, -(a + b)]);
+   if (k === 2) return mkN(`${P(-a * b)} ÷ ${b} = ?`, -a, [a, -b, b]);
+   if (k === 3) { const n = R(2, 5); return mkN(`${sup('(' + M + '2)', n)} = ?`, (-2) ** n, [-((-2) ** n), 2 * n, -2 * n]); }
+   const c = pick([2, 3]); return mkN(`${P(-a * c)} × ${b} ÷ ${P(-c)} = ?`, a * b, [-a * b, a * b * c, -a * c * b]);
+ }},
+ { s: 0, id: 'eq', t: '方程式', g: k => {
+   const x = R(1, 5 + k) * (k >= 2 ? sgn() : 1), a = R(2, 3 + k), b = R(1, 12) * (k ? sgn() : 1);
+   if (k < 3) { const c = a * x + b; return mkN(`${a}${X}${pm(b)} = ${N(c)}` + xq, x, [-x, (c + b) % a === 0 ? (c + b) / a : x + 1, c - b, x + 2], { ask: '阿公，<i>x</i> 是多少？' }); }
+   const d = R(1, a - 1), e = a * x + b - d * x;
+   return mkN(`${a}${X}${pm(b)} = ${d === 1 ? '' : d}${X}${e ? pm(e) : ''}` + xq, x, [-x, x + 1, x - 1], { ask: '兩邊都有 <i>x</i>…' });
+ }},
+ /* 國二 */
+ { s: 1, id: 'sq2', t: '乘法公式', g: k => {
+   const n = R(2, 9);
+   if (k === 0) return mk(`(${X} + ${n})<sup>2</sup> = ?`, poly([1, 2 * n, n * n]), [poly([1, 0, n * n]), poly([1, n, n * n]), poly([1, 2 * n, 2 * n]), poly([1, n * n, n * n]), poly([1, 2 * n, n])]);
+   if (k === 1) return mk(`(${X} − ${n})<sup>2</sup> = ?`, poly([1, -2 * n, n * n]), [poly([1, 0, -n * n]), poly([1, 2 * n, n * n]), poly([1, -2 * n, -n * n])]);
+   if (k === 2) return mk(`(${X} + ${n})(${X} − ${n}) = ?`, poly([1, 0, -n * n]), [poly([1, 0, n * n]), poly([1, -2 * n, -n * n]), poly([1, 2 * n, -n * n])]);
+   if (k === 3) { const m = pick([99, 101, 98, 102, 999]); return mkN(`${m}<sup>2</sup> = ?`, m * m, [m * m + 1, m * m - 100, m * m + 100], { ask: '要用公式喔？' }); }
+   const m = pick([50, 100, 30]), d = R(1, 4); return mkN(`${m + d} × ${m - d} = ?`, m * m - d * d, [m * m + d * d, m * m, m * m - 2 * d * d], { ask: '這題有捷徑嗎？' });
+ }},
+ { s: 1, id: 'py', t: '畢氏定理', g: k => {
+   const T = [[3, 4, 5], [6, 8, 10], [5, 12, 13], [8, 15, 17], [9, 12, 15], [7, 24, 25]];
+   const [a, b, c] = pick(k < 2 ? T.slice(0, 3) : T);
+   if (k < 2) return mkN(tri(a, b, '?'), c, [a + b, c + 1, c - 1, a * b / 2], { ask: '阿公，斜邊多長？' });
+   if (k < 4) return mkN(tri(a, '?', c), b, [c - a, c + a, b + 1, b - 1], { ask: '這邊多長？' });
+   const [p, q] = pick([[1, 2], [2, 3], [1, 3], [2, 5], [3, 5]]); const s = p * p + q * q;
+   const nsq = n => Number.isInteger(Math.sqrt(n)) ? null : sq(n);
+   return mk(tri(p, q, '?'), sq(s), [N(p + q), nsq(s + 1), nsq(p + q), nsq(s - 1), nsq(s + 2), nsq(2 * s)], { ask: '斜邊是幾？' });
+ }},
+ { s: 1, id: 'fac', t: '因式分解', g: k => {
+   let p, q;
+   if (k < 3) {
+     do { p = R(-7, 7); q = R(-7, 7); } while (!p || !q || p === q || p === -q || (k < 2 && (p < 0 || q < 0)));
+     const f = (a, b) => `(${X}${pm(a)})(${X}${pm(b)})`;
+     return mk(poly([1, p + q, p * q]) + ' = ?', f(p, q), [f(-p, -q), f(p, -q), f(-p, q)], { ask: '阿公，怎麼拆？' });
+   }
+   do { p = R(-7, 7); q = R(-6, 6); } while (!q || p % 2 === 0 || p === q || p === -q || p + 2 * q === 0);
+   const g = (a, b) => `(2${X}${pm(a)})(${X}${pm(b)})`;
+   return mk(poly([2, p + 2 * q, p * q]) + ' = ?', g(p, q), [g(-p, -q), g(q, p), g(p, -q), g(-p, q)], { ask: '前面有 2，好難…' });
+ }},
+ /* 國三 */
+ { s: 2, id: 'quad', t: '二次方程式', g: k => {
+   let r, s; do { r = R(-6, 7); s = R(-6, 7); } while (!r || !s || r === s || r === -s || (k < 2 && (r < 0 || s < 0)));
+   const S = (a, b) => { const [u, v] = [a, b].sort((x, y) => x - y); return `${N(u)}, ${N(v)}`; };
+   return mk(poly([1, -(r + s), r * s]) + ' = 0' + xq, S(r, s), [S(-r, -s), S(r, -s), S(-r, s)], { ask: '<i>x</i> 有兩個答案？' });
+ }},
+ { s: 2, id: 'ap', t: '等差數列', g: k => {
+   if (k === 4) return mkN('1 + 2 + 3 + … + 100', 5050, [5000, 5100, 10100], { ask: '要一個一個加嗎？' });
+   const a = R(1, 9), d = R(2, 5) * (k === 3 ? -1 : 1), n = [5, 8, 10, 20][k];
+   const seq = [0, 1, 2, 3].map(i => N(a + i * d)).join(', ') + ', …';
+   return mkN(`<div>${seq}</div>` + sub(`第 ${n} 個 = ?`), a + (n - 1) * d, [a + n * d, a + (n - 2) * d, n * d], { ask: '第 ' + n + ' 個是多少？' });
+ }},
+ { s: 2, id: 'prob', t: '機率', g: k => {
+   const L = [[0, '🎲', '擲出 6？', 1, 6], [0, '🎲', '擲出偶數？', 1, 2], [1, '🔴🔴🔴⚪⚪', '抽到 🔴？', 3, 5], [1, '🎲', '大於 4？', 1, 3],
+     [2, '🪙🪙', '兩個都正面？', 1, 4], [2, '🔴🔴⚪⚪⚪', '抽到 ⚪？', 3, 5], [3, '🪙🪙🪙', '三個都正面？', 1, 8], [3, '🎲', '擲出質數？', 1, 2],
+     [4, '🎲🎲', '加起來是 7？', 1, 6], [4, '🎲🎲', '兩個都是 6？', 1, 36]].filter(x => x[0] === k);
+   const [, pic, txt, p, q] = pick(L);
+   const pool = [[1, 2], [1, 3], [1, 4], [1, 6], [1, 8], [2, 5], [3, 5], [1, 12], [1, 36], [2, 3], [5, 6], [3, 8]].map(([a, b]) => F(a, b));
+   return mk(`<div class="emo">${pic}</div>` + sub(txt), F(p, q), shuffle(pool.slice()), { ask: '機會有多大？' });
+ }},
+ /* 高一 */
+ { s: 3, id: 'pow', t: '指數', g: k => {
+   if (k === 0) { const b = pick([2, 3, 5]), e = b === 5 ? R(2, 3) : R(3, 5); return mkN(sup(b, e) + ' = ?', b ** e, [b * e, b ** (e + 1), b ** (e - 1)]); }
+   if (k === 1) { const m = R(2, 5), n = R(3, 6); return mk(`${sup(2, m)} × ${sup(2, n)} = ?`, sup(2, m + n), [sup(2, m * n), sup(4, m + n), sup(4, m * n)], { fill: () => sup(2, R(2, 30)) }); }
+   if (k === 2) { const b = pick([2, 3]), m = R(2, 4), n = R(2, 3); return mk(`(${sup(b, m)})<sup>${n}</sup> = ?`, sup(b, m * n), [sup(b, m + n), sup(b, m ** n), sup(b * n, m)], { fill: () => sup(b, R(2, 20)) }); }
+   if (k === 3) { const [b, p, q, a] = pick([[8, 2, 3, 4], [27, 2, 3, 9], [16, 1, 2, 4], [16, 3, 4, 8], [25, 3, 2, 125], [4, 3, 2, 8]]); return mkN(`${b}<sup>${p}/${q}</sup> = ?`, a, [Math.round(b * p / q), a * 2, a + 1]); }
+   const b = pick([2, 3, 5]), n = b === 5 ? 2 : R(2, 3);
+   return mk(`${b}<sup>${M}${n}</sup> = ?`, F(1, b ** n), [N(-(b ** n)), F(1, b * n), F(-1, b ** n), F(-1, b * n), F(1, b ** n + 1)]);
+ }},
+ { s: 3, id: 'log', t: '對數', g: k => {
+   const lg = b => `log<sub>${b}</sub>`;
+   if (k === 0) { const b = pick([2, 3]), e = b === 2 ? R(3, 6) : R(2, 4); return mkN(`${lg(b)} ${b ** e} = ?`, e, [e + 1, e - 1, b ** (e - 1)]); }
+   if (k === 1) { const e = R(2, 5); return mkN(`log ${10 ** e} = ?`, e, [e + 1, e - 1, 10 * e]); }
+   if (k === 2) { const e = R(2, 4); return mkN(`${lg(2)} ${fr(1, 2 ** e)} = ?`, -e, [e, -(e + 1), e + 1]); }
+   if (k === 3) { const [t, a] = pick([['log 2 + log 5', 1], ['log 4 + log 25', 2], ['log 20 + log 50', 3], ['log 8 + log 125', 3]]); return mkN(t + ' = ?', a, [a + 1, a + 2, 10]); }
+   const [t, a] = pick([[`${lg(2)} 24 − ${lg(2)} 3`, 3], [`${lg(3)} 54 − ${lg(3)} 2`, 3], [`${lg(2)} 20 − ${lg(2)} 5`, 2], [`${lg(5)} 50 − ${lg(5)} 2`, 2]]);
+   return mkN(t + ' = ?', a, [a + 1, a - 1, a + 5]);
+ }},
+ { s: 3, id: 'rem', t: '餘式定理', g: k => {
+   const deg = k < 2 ? 2 : 3; const c = [1]; for (let i = 0; i < deg; i++) c.push(R(-5, 5));
+   if (!c[deg]) c[deg] = 3;
+   const a = k === 0 ? R(1, 2) : R(1, 3) * sgn();
+   const div = `(${X}${pm(-a)})`;
+   const r = ev(c, a);
+   return mkN(`<div>f(${X}) = ${poly(c)}</div>` + sub(`÷ ${div}　餘數 = ?`), r, [ev(c, -a), r + a, c[deg]], { ask: '阿公，餘數是多少？' });
+ }},
+ /* 高二 */
+ { s: 4, id: 'trig', t: '三角函數', g: k => {
+   const r3 = Math.sqrt(3), r2 = Math.sqrt(2);
+   const pool = [[0, '0'], [1, '1'], [-1, M + '1'], [.5, fr(1, 2)], [-.5, M + fr(1, 2)], [r3 / 2, fr(sq(3), 2)], [-r3 / 2, M + fr(sq(3), 2)], [r2 / 2, fr(sq(2), 2)], [-r2 / 2, M + fr(sq(2), 2)], [r3, sq(3)], [-r3, M + sq(3)], [1 / r3, fr(sq(3), 3)], [-1 / r3, M + fr(sq(3), 3)]];
+   const H = v => (pool.find(p => Math.abs(p[0] - v) < 1e-9) || [0, '?'])[1];
+   const A = [[30, 45, 60], [30, 45, 60, 90, 0], [120, 135, 150], [210, 225, 240, 300, 315, 330], [180, 270, 150, 240, 330]][k];
+   let ang, fn, v; do { ang = pick(A); fn = pick(k === 1 ? ['tan', 'tan', 'sin', 'cos'] : k === 0 ? ['sin', 'cos'] : ['sin', 'cos', 'tan']); } while (fn === 'tan' && (ang === 90 || ang === 270));
+   const rad = ang * Math.PI / 180; v = fn === 'sin' ? Math.sin(rad) : fn === 'cos' ? Math.cos(rad) : Math.tan(rad);
+   const co = fn === 'sin' ? Math.cos(rad) : fn === 'cos' ? Math.sin(rad) : 1 / Math.tan(rad);
+   return mk(`${fn} ${ang}° = ?`, H(v), [H(-v), H(co), H(-co)].filter(s => s !== '?'), { fill: () => pick(pool)[1] });
+ }},
+ { s: 4, id: 'vec', t: '向量', g: k => {
+   const V = (a, b) => `(${N(a)}, ${N(b)})`;
+   if (k < 3) { const m = k ? 6 : 5; const a = R(1, m) * (k ? sgn() : 1), b = R(1, m) * (k > 1 ? sgn() : 1), c = R(1, m) * (k ? sgn() : 1), d = R(1, m); return mkN(`${V(a, b)} · ${V(c, d)}`, a * c + b * d, [a * d + b * c, a * c - b * d, a + b + c + d], { ask: '內積怎麼算？' }); }
+   if (k === 3) { const [a, b, c] = pick([[3, 4, 5], [6, 8, 10], [5, 12, 13], [8, 6, 10]]); return mkN(`| ${V(a, b)} | = ?`, c, [a + b, a * a + b * b, c + 1], { ask: '這個箭頭多長？' }); }
+   const b = R(1, 4), c = R(1, 5), a = b * R(1, 3); const kk = -a * c / b;
+   return mkN(`${V(a, b)} ⊥ (${c}, <i>k</i>)` + sub('<i>k</i> = ?'), kk, [-kk, a * c, kk + 1], { ask: '垂直的話…' });
+ }},
+ { s: 4, id: 'perm', t: '排列組合', g: k => {
+   if (k === 0) { const n = R(3, 5); return mkN(`${n}! = ?`, fact(n), [n * (n - 1), n * n, fact(n) + n]); }
+   if (k === 1) { const f = shuffle(['🍎', '🍌', '🍇', '🍊', '🍓']).slice(0, R(3, 4)); return mkN(`<div class="emo">${f.join('')}</div>` + sub('排成一排？'), fact(f.length), [f.length * f.length, f.length * 2, fact(f.length) / 2], { ask: '有幾種排法？' }); }
+   if (k === 2) { const n = R(4, 6); return mkN(`<div class="emo">${'🙂'.repeat(n)}</div>` + sub('選 2 人？'), comb(n, 2), [n * (n - 1), n * 2, n + 2], { ask: '有幾種選法？' }); }
+   if (k === 3) { const n = R(5, 7), r = R(2, 3); return mkN(Cnk(n, r) + ' = ?', comb(n, r), [comb(n, r) * fact(r), n * r, comb(n, r) + n]); }
+   const n = R(6, 10); return mkN(`<div class="emo">${'🙂'.repeat(Math.min(n, 8))}${n > 8 ? '…' : ''}</div>` + sub(`${n} 人互相握手 🤝`), comb(n, 2), [n * (n - 1), n * 2, comb(n, 2) + n], { ask: '總共握幾次手？' });
+ }},
+ /* 高三 */
+ { s: 5, id: 'lim', t: '極限', g: k => {
+   const L = lim('<i>n</i>', '∞'), n = '<i>n</i>';
+   if (k === 0) return mk(`${L} ${fr(1, n)} = ?`, '0', ['1', '∞', M + '1']);
+   if (k === 1) { const a = R(2, 6), b = R(1, 5), c = R(1, 4), d = R(1, 6); return mk(`${L} ${fr(a + n + ' + ' + b, c === 1 ? n + ' + ' + d : c + n + ' + ' + d)}`, F(a, c), [F(b, d), F(a + b, c + d), '∞', '0', F(c, a)], { fill: () => F(R(1, 9), R(2, 9)) }); }
+   if (k === 2) { const a = R(2, 5), c = R(2, 5); return mk(`${L} ${fr(a + sup(n, 2) + ' + 1', c + sup(n, 2) + ' + ' + n)}`, F(a, c), ['0', '∞', F(c, a), F(a + 1, c)]); }
+   if (k === 3) { const [r, s, t, ans] = pick([[fr(1, 2), fr(1, 4), fr(1, 8), '2'], [fr(1, 3), fr(1, 9), fr(1, 27), F(3, 2)], [fr(2, 3), fr(4, 9), fr(8, 27), '3']]); return mk(`1 + ${r} + ${s} + ${t} + …`, ans, ['∞', '1', F(5, 4), '4'], { ask: '一直加下去會變多少？' }); }
+   return mk('0.999… = ?', '1', ['0.9', fr(99, 100), '1.1'], { ask: '這個是 1 嗎？好奇怪！' });
+ }},
+ { s: 5, id: 'det', t: '行列式', g: k => {
+   if (k < 4) { const m = [4, 6, 8, 9][k]; const r = () => k < 1 ? R(1, m) : R(-m, m) || 2; const a = r(), b = r(), c = r(), d = r();
+     return mkN(mat([[a, b], [c, d]]) + ' = ?', a * d - b * c, [a * d + b * c, b * c - a * d, a * c - b * d], { ask: '這兩條直線是什麼？' }); }
+   const a = R(1, 4), e = R(1, 4) * sgn(), i = R(1, 5), b = R(-5, 5), c = R(-5, 5), f = R(-5, 5);
+   return mkN(mat([[a, b, c], [0, e, f], [0, 0, i]]) + ' = ?', a * e * i, [a + e + i, -a * e * i, a * e * i + b * f]);
+ }},
+ { s: 5, id: 'ex', t: '期望值', g: k => {
+   if (k === 0) { const A = pick([10, 20, 100]); return mkN(`<div class="emo">🪙</div>` + sub(`正面 ${A} 元 · 反面 0 元`), A / 2, [A, A / 4, A * 2], { ask: '平均能拿多少？' }); }
+   if (k === 1) return mk(`<div class="emo">🎲</div>` + sub('點數的期望值？'), '3.5', ['3', '4', '6'], { ask: '平均擲出幾點？' });
+   if (k === 2) { const A = pick([40, 100, 200]); return mkN(`<div class="emo">🎯</div>` + sub(`${fr(1, 4)} 機會得 ${A} 分`), A / 4, [A / 2, A, A * 4], { ask: '平均得幾分？' }); }
+   if (k === 3) { const A = pick([100, 60, 80]), B = pick([20, 40]); return mkN(`<div class="emo">🪙</div>` + sub(`正面 +${A} · 反面 ${M}${B}`), (A - B) / 2, [(A + B) / 2, A - B, A], { ask: '這個遊戲划算嗎？' }); }
+   const A = pick([60, 120, 30]); return mkN(`<div class="emo">🎲</div>` + sub(`擲出 6 得 ${A} 元`), A / 6, [A / 2, A, A / 3], { ask: '平均能拿多少？' });
+ }},
+ /* 大學微積分 */
+ { s: 6, id: 'd1', t: '微分', g: k => {
+   if (k === 0) { const n = R(3, 7); return mk(`(${sup(X, n)})′ = ?`, poly([n, ...Array(n - 1).fill(0)]), [sup(X, n - 1), n + sup(X, n), (n - 1) + sup(X, n)], { ask: '阿公，微分是什麼？' }); }
+   if (k === 1) { const a = R(2, 5), b = R(1, 9); return mk(`(${poly([a, b, 0])})′ = ?`, poly([2 * a, b]), [poly([a, b]), poly([2 * a, 0]), poly([2 * a, b, 0])]); }
+   if (k === 2) { const a = R(1, 4) * sgn(), b = R(1, 6) * sgn(), c = R(1, 9); return mk(`(${poly([1, a, b, c])})′`, poly([3, 2 * a, b]), [poly([3, 2 * a, b, c]), poly([3, a, b]), poly([1, a, b])], { ask: '這個怎麼微？' }); }
+   const a = R(1, 4), b = k === 4 ? R(1, 5) * sgn() : 0, n = R(1, 3); const c = [1, b, a, R(1, 5)]; const d = 3 * n * n + 2 * b * n + a;
+   return mkN(`<div>f(${X}) = ${poly(c)}</div>` + sub(`f′(${n}) = ?`), d, [ev(c, n), d + a, 3 * n + 2 * b + a], { ask: '斜率是多少？' });
+ }},
+ { s: 6, id: 'd2', t: '微分 II', g: k => {
+   const sx = 'sin ' + X, cx = 'cos ' + X;
+   const L = [
+     [0, sx, cx, [M + cx, M + sx, sx]], [0, cx, M + sx, [sx, M + cx, cx]],
+     [1, ex(X), ex(X), [X + ex(X + '−1'), 'e', '1']], [1, 'ln ' + X, fr(1, X), [X, 'ln ' + X, fr(1, sup(X, 2))]],
+     [2, ex('2' + X), '2' + ex('2' + X), [ex('2' + X), '2' + ex(X), X + ex('2' + X)]], [2, 'sin 3' + X, '3 cos 3' + X, ['cos 3' + X, M + '3 cos 3' + X, '3 sin 3' + X]],
+     [3, `(${sup(X, 2)} + 1)<sup>3</sup>`, `6${X}(${sup(X, 2)} + 1)<sup>2</sup>`, [`3(${sup(X, 2)} + 1)<sup>2</sup>`, `6${X}(${sup(X, 2)} + 1)<sup>3</sup>`, `2${X}(${sup(X, 2)} + 1)<sup>2</sup>`]],
+     [3, `ln(${sup(X, 2)} + 1)`, fr('2' + X, sup(X, 2) + ' + 1'), [fr(1, sup(X, 2) + ' + 1'), '2' + X, fr('2' + X, sup(X, 2))]],
+     [4, X + ex(X), `(${X} + 1)${ex(X)}`, [ex(X), X + ex(X), `(${X} − 1)${ex(X)}`]], [4, X + ' sin ' + X, `sin ${X} + ${X} cos ${X}`, [cx, X + ' cos ' + X, `sin ${X} − ${X} cos ${X}`]]
+   ].filter(r => r[0] === k);
+   const [, f, a, ds] = pick(L); return mk(`(${f})′ = ?`, a, ds, { ask: k >= 3 ? '這個要用連鎖律？' : '阿公，這個怎麼微？' });
+ }},
+ { s: 6, id: 'flim', t: '函數極限', g: k => {
+   if (k === 0) { const a = R(2, 6); return mkN(`${lim(X, a)} ${fr(sup(X, 2) + ' − ' + a * a, X + ' − ' + a)}`, 2 * a, [a, 0, a * a], { ask: '分母變 0 了耶？' }); }
+   if (k === 1) return mk(`${lim(X, 0)} ${fr('sin ' + X, X)}`, '1', ['0', '∞', '不存在'], { ask: '0 除以 0？' });
+   if (k === 2) { const a = R(2, 7); return mkN(`${lim(X, 0)} ${fr('sin ' + a + X, X)}`, a, [1, 0, a * a]); }
+   if (k === 3) return pick([() => mk(`${lim(X, 0)} ${fr(ex(X) + ' − 1', X)}`, '1', ['0', 'e', '∞']), () => mk(`${lim(X, 0)} ${fr('1 − cos ' + X, sup(X, 2))}`, F(1, 2), ['0', '1', '2'])])();
+   return pick([() => mk(`${lim(X, '∞')} (1 + ${fr(1, X)})<sup>${X}</sup>`, 'e', ['1', '∞', '0'], { ask: '這是有名的數字？' }), () => mk(`${lim(X, '∞')} (1 + ${fr(2, X)})<sup>${X}</sup>`, ex(2), ['e', '2', '∞'])])();
+ }},
+ { s: 6, id: 'int', t: '積分', g: k => {
+   const dx = ' d' + X;
+   if (k === 0) { const a = R(2, 6); return mkN(`${integ(0, a)} 2${X}${dx}`, a * a, [2 * a, a, 2 * a * a], { ask: '面積是多少？' }); }
+   if (k === 1) { const a = R(1, 3); return mkN(`${integ(0, a)} 3${sup(X, 2)}${dx}`, a ** 3, [3 * a * a, a * a, 3 * a ** 3], { ask: '阿公，積分是什麼？' }); }
+   if (k === 2) return pick([() => mk(`${integ()} cos ${X}${dx}`, `sin ${X} + C`, [`${M}sin ${X} + C`, `cos ${X} + C`, `${M}cos ${X} + C`]), () => mk(`${integ()} 2${X}${dx}`, sup(X, 2) + ' + C', ['2 + C', '2' + sup(X, 2) + ' + C', X + ' + C'])])();
+   if (k === 3) return pick([() => mk(`${integ(0, 'π')} sin ${X}${dx}`, '2', ['0', '1', 'π'], { ask: '一個拱橋的面積？' }), () => mk(`${integ(1, 'e')} ${fr(1, X)}${dx}`, '1', ['e', '0', 'e − 1'])])();
+   return pick([() => mk(`${integ(0, 1)} ${ex(X)}${dx}`, 'e − 1', ['e', '1', 'e + 1']), () => mk(`${integ(0, 1)} (${sup(X, 2)} + ${X})${dx}`, F(5, 6), [F(1, 2), '1', F(2, 3)])])();
+ }},
+];
+/* ================= 圖像題、情境題、經典名題 ================= */
+const CH = '#fbf8ee', YL = '#f2b41c', DM = 'rgba(251,248,238,.22)', BD = '#2f4f3f';
+const lab = (x, y, t, o = {}) => `<text x="${x}" y="${y}" text-anchor="${o.a || 'middle'}" dominant-baseline="middle" font-size="${o.s || 34}" font-family="STIX Two Text,Noto Sans TC,serif" font-weight="600" stroke="none" fill="${o.c || (String(t).includes('?') ? YL : CH)}">${t}</text>`;
+const pic = (vb, body) => `<svg viewBox="${vb}" fill="none" stroke="${CH}" stroke-width="4" stroke-linejoin="round" stroke-linecap="round">${body}</svg>`;
+const pis = n => (n === 1 ? '' : n) + 'π';
+function clock(h, m){
+  let s = `<circle cx="100" cy="100" r="88"/>`;
+  for (let i = 0; i < 12; i++) { const a = i * Math.PI / 6, r1 = i % 3 ? 78 : 70; s += `<line x1="${100 + r1 * Math.sin(a)}" y1="${100 - r1 * Math.cos(a)}" x2="${100 + 86 * Math.sin(a)}" y2="${100 - 86 * Math.cos(a)}" stroke-width="${i % 3 ? 3 : 5}"/>`; }
+  const ha = ((h % 12) * 30 + m * .5) * Math.PI / 180, ma = m * 6 * Math.PI / 180;
+  s += `<line x1="100" y1="100" x2="${100 + 46 * Math.sin(ha)}" y2="${100 - 46 * Math.cos(ha)}" stroke-width="9"/><line x1="100" y1="100" x2="${100 + 72 * Math.sin(ma)}" y2="${100 - 72 * Math.cos(ma)}" stroke-width="5" stroke="${YL}"/><circle cx="100" cy="100" r="7" fill="${CH}"/>`;
+  return pic('0 0 200 200', s);
+}
+const G = (x, y) => [30 + 40 * x, 270 - 40 * y];
+function grid(body){
+  let s = '';
+  for (let i = 0; i <= 6; i++) { const [x] = G(i, 0), [, y] = G(0, i); s += `<line x1="${x}" y1="30" x2="${x}" y2="270" stroke="${DM}" stroke-width="2"/><line x1="30" y1="${y}" x2="270" y2="${y}" stroke="${DM}" stroke-width="2"/>`; }
+  s += `<line x1="30" y1="270" x2="285" y2="270"/><line x1="30" y1="270" x2="30" y2="15"/>${lab(18, 290, 0, { s: 22 })}`;
+  return pic('0 0 300 300', s + body);
+}
+const dotP = (x, y, name) => { const [a, b] = G(x, y); return `<circle cx="${a}" cy="${b}" r="10" fill="${YL}" stroke="none"/>${name ? lab(a + 14, b - 20, name, { s: 36, a: 'start' }) : ''}`; };
+const segG = (p, q) => { const [a, b] = G(...p), [c, d] = G(...q); return `<line x1="${a}" y1="${b}" x2="${c}" y2="${d}"/>`; };
+const tnum = n => n * (n + 1) / 2;
+
+const EXTRA = [
+ { id: 'shop', s: 0, t: '買東西', g: k => {
+   if (k === 0) { const p = pick([12, 15, 25, 35]), n = R(3, 6); return mkN(emo('🍎') + sub(`一個 ${p} 元<br>買 ${n} 個`), p * n, [p + n, p * (n + 1), p * n - 10], { ask: '一共要付多少錢？' }); }
+   if (k === 1) { const p = R(12, 88), m = p > 50 ? 100 : pick([50, 100]); return mkN(emo('💵 → 🥤') + sub(`付 ${m} 元<br>飲料 ${p} 元`), m - p, [m - p + 10, m - p - 10, p], { ask: '要找多少錢？' }); }
+   if (k === 2) { const p = pick([500, 800, 1200, 2000]), d = pick([8, 7, 9]); return mkN(emo('👕') + sub(`${p} 元<br>打 ${d} 折`), p * d / 10, [p * (10 - d) / 10, p - d * 10, p * d / 100], { ask: '打折後多少錢？' }); }
+   if (k === 3) { const u = pick([60, 80, 45]), a = R(2, 4), b = a + R(2, 4); return mkN(emo('🍱') + sub(`${a} 個 ${u * a} 元<br>${b} 個呢？`), u * b, [u * a + b, u * (b - 1), u * a * 2], { ask: '便當多少錢？' }); }
+   const n = pick([12, 18, 24]); return mkN(emo('🧋') + sub(`買 5 送 1<br>要 ${n} 杯`), n * 5 / 6, [n - 1, n, n - 2], { ask: '只要付幾杯的錢？' });
+ }},
+ { id: 'area', s: 0, t: '面積', g: k => {
+   const ask = { ask: '這塊地多大？' };
+   if (k === 0) { const w = R(3, 9), h = R(2, 6); return mkN(pic('-10 -10 330 200', `<rect x="20" y="20" width="230" height="130" fill="${DM}"/>${lab(135, 176, w)}${lab(265, 85, h, { a: 'start' })}`) + sub('面積 = ?'), w * h, [2 * (w + h), w + h, w * h + w], ask); }
+   if (k === 1) { const b = R(2, 6) * 2, h = R(3, 8); return mkN(pic('-10 -10 300 200', `<path d="M20 150 L250 150 L90 20 Z" fill="${DM}"/><path d="M90 20 V150" stroke-dasharray="8 8" stroke-width="3"/>${lab(135, 178, b)}${lab(102, 92, h, { a: 'start' })}`) + sub('面積 = ?'), b * h / 2, [b * h, b + h, b * h / 2 + b], ask); }
+   if (k === 2) { const a = R(2, 5), b = a + R(2, 5), h = R(1, 4) * 2; return mkN(pic('-10 -20 300 220', `<path d="M20 150 L270 150 L200 30 L80 30 Z" fill="${DM}"/><path d="M80 30 V150" stroke-dasharray="8 8" stroke-width="3"/>${lab(140, 6, a)}${lab(145, 178, b)}${lab(92, 96, h, { a: 'start' })}`) + sub('面積 = ?'), (a + b) * h / 2, [(a + b) * h, a * b * h / 2, a * h + b], ask); }
+   if (k === 3) { const a = R(6, 10), b = R(2, a - 3), w = 180 * b / a, o = 20 + (180 - w) / 2;
+     return mkN(pic('-10 -10 240 240', `<rect x="20" y="20" width="180" height="180" fill="${DM}"/><rect x="${o}" y="${o}" width="${w}" height="${w}" fill="${BD}"/>${lab(110, 218, a)}${lab(110, 110, b, { s: 28 })}`) + sub('灰色面積 = ?'), a * a - b * b, [(a - b) ** 2, a * a + b * b, 4 * (a - b)], { ask: '中間挖掉一塊…' }); }
+   const a = R(1, 3), b = a + R(1, 3), u = 200 / (a + b), A = a * u;
+   return mkN(pic('-30 -40 260 270', `<rect x="0" y="0" width="200" height="200"/><path d="M${A} 0 L200 ${A} L${200 - A} 200 L0 ${200 - A} Z" fill="${DM}"/>${lab(A / 2, -20, a, { s: 28 })}${lab(A + (200 - A) / 2, -20, b, { s: 28 })}`) + sub('斜的正方形 = ?'), a * a + b * b, [(a + b) ** 2, 2 * a * b, a * b], { ask: '中間斜斜的那塊多大？' });
+ }},
+ { id: 'ang', s: 1, t: '角度', g: k => {
+   if (k === 0) { const A = R(8, 16) * 5, B = R(6, 14) * 5; return mkN(pic('0 0 300 180', `<path d="M20 160 L280 160 L110 20 Z"/>${lab(62, 140, A + '°', { s: 28 })}${lab(236, 140, B + '°', { s: 28 })}${lab(112, 62, '?', { s: 30 })}`), 180 - A - B, [360 - A - B, 90 - Math.abs(A - B), A + B], { ask: '最上面那個角幾度？' }); }
+   if (k === 1) { const x = R(6, 16) * 5, r = x * Math.PI / 180; return mkN(pic('0 0 300 170', `<line x1="10" y1="150" x2="290" y2="150"/><line x1="150" y1="150" x2="${150 + 130 * Math.cos(r)}" y2="${150 - 130 * Math.sin(r)}"/>${lab(215, 125, x + '°', { s: 26 })}${lab(100, 120, '?', { s: 30 })}`), 180 - x, [90 - x, 360 - x, x], { ask: '另一邊幾度？' }); }
+   if (k === 2) { const h = pick([1, 2, 3, 4, 5]); return mkN(clock(h, 0) + sub('兩根針夾幾度？'), 30 * h, [30 * h + 30, 30 * h - 15, 12 * h], { ask: `現在 ${h} 點整…` }); }
+   if (k === 3) { const n = R(5, 8), pts = [...Array(n)].map((_, i) => { const a = -Math.PI / 2 + i * 2 * Math.PI / n; return (100 + 85 * Math.cos(a)).toFixed(1) + ',' + (100 + 85 * Math.sin(a)).toFixed(1); }).join(' ');
+     return mkN(pic('0 0 200 200', `<polygon points="${pts}" fill="${DM}"/>`) + sub(`${n} 個內角加起來？`), (n - 2) * 180, [n * 180, (n - 1) * 180, 360], { ask: `這是 ${n} 邊形！` }); }
+   const h = pick([1, 2, 4, 8, 9, 10]); let a = Math.abs(30 * h - 165); if (a > 180) a = 360 - a;
+   let wrong = Math.abs(30 * h - 180); if (wrong > 180) wrong = 360 - wrong;
+   return mkN(clock(h, 30) + sub('兩根針夾幾度？'), a, [wrong, a + 30, a - 30 > 0 ? a - 30 : a + 45], { ask: `${h} 點半，有陷阱喔！` });
+ }},
+ { id: 'speed', s: 1, t: '速度', g: k => {
+   if (k === 0) { const v = R(4, 9) * 10, t = R(2, 5); return mkN(emo('🚗') + sub(`時速 ${v} 公里<br>開 ${t} 小時`), v * t, [v + t, v * (t + 1), v * t / 2], { ask: '開了幾公里？' }); }
+   if (k === 1) { const v = R(3, 6), t = R(2, 5); return mkN(emo('🚶') + sub(`走 ${v * t} 公里<br>花 ${t} 小時`), v, [v * t * t, v + t, v + 1], { ask: '一小時走幾公里？' }); }
+   if (k === 2) { const v = pick([100, 150, 200, 250]), t = R(2, 4); return mkN(emo('🚄') + sub(`${v * t} 公里<br>時速 ${v}`), t, [t + 1, t * 2, t + 2], { ask: '要坐幾小時？' }); }
+   if (k === 3) { const a = R(3, 6), b = R(4, 8), t = R(2, 4); return mkN(emo('🚶→　←🏃') + sub(`相距 ${(a + b) * t} 公里<br>時速 ${a} 和 ${b}`), t, [t + 1, t * 2, t + 2], { ask: '幾小時會碰到？' }); }
+   const [a, b, c] = pick([[60, 40, 48], [60, 30, 40], [30, 20, 24], [120, 80, 96]]);
+   return mkN(emo('🚗 ⇄') + sub(`去程時速 ${a}<br>回程時速 ${b}`), c, [(a + b) / 2, a - b, (a + b) / 2 + 5], { ask: '平均時速？有陷阱喔！' });
+ }},
+ { id: 'circ', s: 2, t: '圓', g: k => {
+   if (k === 0) { const r = R(2, 9); return mk(pic('0 0 200 200', `<circle cx="100" cy="100" r="85" fill="${DM}"/><line x1="100" y1="100" x2="185" y2="100"/><circle cx="100" cy="100" r="5" fill="${CH}"/>${lab(142, 80, r)}`) + sub('面積 = ?'), pis(r * r), [pis(2 * r), pis(r), pis(4 * r * r)], { fill: () => pis(R(1, 30)), ask: '這個圓多大？' }); }
+   if (k === 1) { const d = R(3, 12); return mk(pic('0 0 200 200', `<circle cx="100" cy="100" r="85"/><line x1="15" y1="100" x2="185" y2="100"/>${lab(100, 78, d)}`) + sub('一圈多長？'), pis(d), [pis(2 * d), pis(d * d), String(d * 3)], { ask: '繞一圈要走多遠？' }); }
+   if (k === 2) { const r = pick([2, 4, 6]); return mk(pic('0 -10 200 120', `<path d="M15 100 A85 85 0 0 1 185 100 Z" fill="${DM}"/><line x1="100" y1="100" x2="185" y2="100"/>${lab(142, 82, r)}`) + sub('半圓面積 = ?'), pis(r * r / 2), [pis(r * r), pis(r), pis(r * r / 4)], { fill: () => pis(R(1, 30)), ask: '半個圓呢？' }); }
+   if (k === 3) { const r = pick([2, 4, 6]); return mk(pic('0 0 200 200', `<path d="M20 180 L20 20 A160 160 0 0 1 180 180 Z" fill="${DM}"/>${lab(100, 200, r, { s: 30 })}`) + sub('扇形面積 = ?'), pis(r * r / 4), [pis(r * r / 2), pis(r * r), pis(r)], { fill: () => pis(R(1, 30)), ask: '四分之一個圓！' }); }
+   const r = R(1, 3); return mk(pic('0 0 220 230', `<rect x="10" y="10" width="200" height="200" fill="${DM}"/><circle cx="110" cy="110" r="100" fill="${BD}"/>${lab(110, 226, 2 * r, { s: 28 })}`) + sub('四個角的面積 = ?'), `${4 * r * r} − ${pis(r * r)}`, [`${4 * r * r} − ${pis(2 * r * r)}`, pis(r * r), `${pis(4 * r * r)} − ${4 * r * r}`], { ask: '四個角加起來多大？' });
+ }},
+ { id: 'old1', s: 2, t: '古代趣題', g: k => {
+   if (k === 0) { const r = R(3, 10), c = R(4, 15); return mkN(emo('🐔🐰') + sub(`共 ${r + c} 個頭<br>${2 * c + 4 * r} 隻腳`), r, [c, r + 1, Math.round((2 * c + 4 * r) / 4)], { ask: '兔子有幾隻？' }); }
+   if (k === 1) { const g = pick([5, 10, 20]), L = g * R(4, 10); return mkN(emo('🌳 · · · 🌳') + sub(`路長 ${L} 公尺<br>每 ${g} 公尺一棵，兩頭都種`), L / g + 1, [L / g, L / g - 1, L / g + 2], { ask: '總共種幾棵樹？' }); }
+   if (k === 2) { let a, m, t, g, n = 0; do { a = R(4, 10); m = pick([3, 4, 5]); t = R(2, 12); g = m * (a + t) - t; } while ((g < 55 || g > 85) && n++ < 200);
+     return mkN(emo('👴 👦') + sub(`${T()} ${g} 歲，我 ${a} 歲`) + sub(`幾年後${T()}是我的 ${m} 倍？`), t, [t + 2, t - 1 > 0 ? t - 1 : t + 3, Math.round(g / m) - a], { ask: '這題跟我們有關！' }); }
+   if (k === 3) return mkN(emo('🐔🐰') + sub('上有 35 頭<br>下有 94 足'), 12, [23, 11, 13], { ask: '1600 年前的考題！兔幾隻？' });
+   return mk(emo('🏮🌸🍶') + sub('遇店酒加倍、見花喝一斗<br>店花各三次，酒喝光'), fr(7, 8) + ' 斗', ['1 斗', fr(1, 2) + ' 斗', fr(3, 4) + ' 斗'], { ask: '李白壺裡原本有多少酒？' });
+ }},
+ { id: 'money', s: 3, t: '存錢', g: k => {
+   if (k === 0) { const P = pick([10000, 50000, 100000]), r = R(1, 4); return mkN(emo('🏦') + sub(`存 ${P} 元<br>年利率 ${r}%`), P * r / 100, [P * r / 10, r * 100, P * r / 1000], { ask: '一年有多少利息？' }); }
+   if (k === 1) { const a = pick([9, 8, 7]), b = pick([9, 8]); return mk(emo('🏷️') + sub(`先打 ${a} 折<br>再打 ${b} 折`), `${a * b}%`, [`${(a + b - 10) * 10}%`, `${Math.min(a, b) * 10}%`, `${a * b + 10}%`], { ask: '剩原價的幾 %？' }); }
+   if (k === 2) { const p = pick([10, 20, 50]); return mk(emo('📈📉') + sub(`先漲 ${p}%<br>再跌 ${p}%`), `${M}${p * p / 100}%`, ['0%', `+${p * p / 100}%`, `${M}${p}%`], { ask: '最後是賺還是賠？' }); }
+   if (k === 3) { const r = pick([10, 20]); return mk(emo('🏦') + sub(`存 100 萬，年利率 ${r}%<br>利滾利 2 年`), `${(100 + r) ** 2 / 100} 萬`, [`${100 + 2 * r} 萬`, `${100 + r} 萬`, '200 萬'], { ask: '兩年後有多少？' }); }
+   const [r, y] = pick([[6, 12], [8, 9], [12, 6]]); return mk(emo('💰×2') + sub(`年利率 ${r}%，利滾利`), `約 ${y} 年`, [`約 ${y * 2} 年`, `約 ${Math.round(100 / r)} 年`, `約 ${y + 4} 年`, `約 ${y - 3} 年`], { ask: '大概幾年錢會翻倍？' });
+ }},
+ { id: 'pat', s: 3, t: '找規律', g: k => {
+   if (k === 0) { const a = R(1, 3), r = pick([2, 3]); return mkN([0, 1, 2, 3].map(i => a * r ** i).join(', ') + ', ?', a * r ** 4, [a * r ** 3 * 2 - a * r ** 2, a * r ** 4 + a, a * r ** 3 + a * r ** 2], { ask: '下一個是什麼？' }); }
+   if (k === 1) { const m = R(1, 2); let s = '', x = 10;
+     for (let f = 0; f < 3; f++) { const n = m + f; for (let row = 0; row < n; row++) for (let c = 0; c <= row; c++) s += `<circle cx="${x + (n - 1 - row) * 9 + c * 18}" cy="${30 + row * 18}" r="6" fill="${CH}" stroke="none"/>`; x += n * 18 + 24; }
+     s += lab(x + 18, 60, '?', { s: 46 });
+     return mkN(pic(`0 0 ${x + 46} ${40 + (m + 2) * 18}`, s), tnum(m + 3), [tnum(m + 3) + 1, tnum(m + 2) * 2, tnum(m + 3) - 1], { ask: '下一個有幾顆？' }); }
+   if (k === 2) return pick([() => mkN('1, 1, 2, 3, 5, 8, ?', 13, [11, 16, 12], { ask: '兔子生兔子的數列！' }), () => mkN('1, 4, 9, 16, ?', 25, [23, 20, 32], { ask: '下一個是什麼？' })])();
+   if (k === 3) return pick([() => mkN('1, 3, 7, 15, ?', 31, [23, 30, 29]), () => mkN('2, 6, 12, 20, ?', 30, [28, 32, 26])])();
+   return mk('1, 11, 21, 1211, 111221, ?', '312211', ['1112221', '122111', '311221'], { ask: '這規律好奇怪…' });
+ }},
+ { id: 'coord', s: 4, t: '座標', g: k => {
+   if (k === 0) { let a, b; do { a = R(1, 6); b = R(1, 6); } while (a === b); return mk(grid(dotP(a, b, 'P')), `(${a}, ${b})`, [`(${b}, ${a})`, `(${a}, ${b + 1 > 6 ? b - 1 : b + 1})`, `(${a - 1}, ${b})`], { ask: 'P 點在哪裡？' }); }
+   if (k === 1) { const [dx, dy] = pick([[3, 4], [4, 3]]), x = R(0, 6 - dx), y = R(0, 6 - dy); return mkN(grid(segG([x, y], [x + dx, y + dy]) + dotP(x, y, 'A') + dotP(x + dx, y + dy, 'B')), 5, [7, 6, 4], { ask: 'A 到 B 多遠？' }); }
+   if (k === 2) { const dx = R(1, 4), dy = R(1, 4) * sgn(), x = R(0, 6 - dx), y = dy > 0 ? R(0, 6 - dy) : R(-dy, 6); return mk(grid(segG([x, y], [x + dx, y + dy]) + dotP(x, y) + dotP(x + dx, y + dy)) + sub('斜率 = ?'), F(dy, dx), [F(dx, dy), F(-dy, dx), N(dy)], { fill: () => F(R(1, 5) * sgn(), R(1, 5)), ask: '這條線多斜？' }); }
+   if (k === 3) { let a, b, c, d; do { a = R(0, 6); b = R(0, 6); c = R(0, 6); d = R(0, 6); } while ((a + c) % 2 || (b + d) % 2 || (a === c && b === d)); const mx = (a + c) / 2, my = (b + d) / 2;
+     return mk(grid(segG([a, b], [c, d]) + dotP(a, b, 'A') + dotP(c, d, 'B')) + sub('中點 = ?'), `(${mx}, ${my})`, [`(${my}, ${mx})`, `(${a + c}, ${b + d})`, `(${mx + 1}, ${my})`], { fill: () => `(${R(0, 6)}, ${R(0, 6)})`, ask: '正中間在哪？' }); }
+   let x1, x2, y1, x3, y3; do { x1 = R(0, 3); x2 = R(x1 + 2, 6); y1 = R(0, 3); x3 = R(0, 6); y3 = R(y1 + 2, 6); } while (((x2 - x1) * (y3 - y1)) % 2);
+   const area = (x2 - x1) * (y3 - y1) / 2;
+   return mkN(grid(`<path d="M${G(x1, y1)} L${G(x2, y1)} L${G(x3, y3)} Z" fill="${DM}"/>`) + sub('面積 = ?'), area, [area * 2, area + 1, (x2 - x1) + (y3 - y1)], { ask: '三角形多大？' });
+ }},
+ { id: 'old2', s: 4, t: '經典難題', g: k => {
+   if (k === 0) { const n = R(3, 4); let s = ''; for (const px of [60, 160, 260]) s += `<line x1="${px}" y1="30" x2="${px}" y2="150" stroke-width="6"/>`; s += `<line x1="10" y1="152" x2="310" y2="152" stroke-width="6"/>`;
+     for (let i = 0; i < n; i++) { const w = 90 - i * 18; s += `<rect x="${60 - w / 2}" y="${130 - i * 22}" width="${w}" height="18" rx="6" fill="${[YL, '#ee7b30', '#8fd0ff', '#ff8fb0'][i]}" stroke="none"/>`; }
+     return mkN(pic('0 10 320 160', s) + sub('全搬到右邊，最少幾步？'), 2 ** n - 1, [2 ** n, 2 * n, 2 ** n + 1], { ask: '大的不能壓小的喔！' }); }
+   if (k === 1) return mkN(emo('💂💂💂') + sub('3 個一數剩 2<br>5 個一數剩 3、7 個一數剩 2'), 23, [53, 38, 128], { ask: '韓信的兵最少幾人？' });
+   if (k === 2) { const c = R(3, 5), cols = ['🔴', '🔵', '⚪', '🟢', '🟡'].slice(0, c).join(''); return mkN(emo('🧦 ' + cols) + sub(`${c} 種顏色，閉眼拿`), c + 1, [c, 2 * c, c + 2], { ask: '最少拿幾隻一定有一雙？' }); }
+   if (k === 3) { const P = { A: [150, 25], B: [150, 235], C: [70, 130], D: [255, 130] };
+     const arc = (p, q, bend) => { const [a, b] = P[p], [c, d] = P[q]; const mx = (a + c) / 2 + bend * (d - b) / 4, my = (b + d) / 2 - bend * (c - a) / 4; return `<path d="M${a} ${b} Q${mx} ${my} ${c} ${d}"/>`; };
+     let s = arc('C', 'A', .9) + arc('C', 'A', -.9) + arc('C', 'B', .9) + arc('C', 'B', -.9) + arc('A', 'D', 0) + arc('B', 'D', 0) + arc('C', 'D', 0);
+     for (const p in P) s += `<circle cx="${P[p][0]}" cy="${P[p][1]}" r="14" fill="${YL}" stroke="none"/>`;
+     return mk(pic('40 0 240 260', s) + sub('7 座橋，每座只走一次'), '走不完', ['可以走完', '只有 1 種走法', '有 7 種走法'], { ask: '能一次走完嗎？' }); }
+   return mk(emo('♟️🍚') + sub('棋盤 64 格，第 1 格 1 粒米<br>每格加倍，總共？'), sup(2, 64) + ' − 1', [sup(2, 64), sup(64, 2), '64 × 2'], { ask: '國王賞多少米？' });
+ }},
+ { id: 'stat', s: 5, t: '統計', g: k => {
+   if (k === 0) { let v; do { v = [R(2, 9), R(2, 9), R(2, 9), R(2, 9)]; } while (v.reduce((a, b) => a + b) % 4); const m = v.reduce((a, b) => a + b) / 4;
+     let s = `<line x1="10" y1="200" x2="290" y2="200"/>`; v.forEach((h, i) => { const x = 25 + i * 68, H = h * 18; s += `<rect x="${x}" y="${200 - H}" width="44" height="${H}" fill="${DM}"/>${lab(x + 22, 200 - H - 18, h, { s: 28 })}`; });
+     return mkN(pic('0 0 300 215', s), m, [m + 1, m - 1, Math.max(...v)], { ask: '平均是多少？' }); }
+   if (k === 1) { let v; do { v = [0, 0, 0, 0].map(() => R(12, 20) * 5); } while (v.reduce((a, b) => a + b) % 4); const m = v.reduce((a, b) => a + b) / 4; return mkN(emo('📝') + sub(v.join('、') + ' 分'), m, [m + 5, m - 5, Math.max(...v)], { ask: '我平均考幾分？' }); }
+   if (k === 2) { let v; do { v = shuffle([R(1, 4), R(5, 7), R(8, 9), R(10, 14), R(15, 30)]); } while (v[2] === [...v].sort((a, b) => a - b)[2] || v.reduce((a, b) => a + b) % 5 === 0 && v.reduce((a, b) => a + b) / 5 === [...v].sort((a, b) => a - b)[2]); const md = [...v].sort((a, b) => a - b)[2];
+     return mkN(v.join(', ') + sub('中位數 = ?'), md, [v[2], Math.round(v.reduce((a, b) => a + b) / 5), Math.max(...v)], { ask: '中位數是正中間那個嗎？' }); }
+   if (k === 3) { let a, b, c, t, x; do { a = R(70, 95); b = R(70, 95); c = R(70, 95); t = pick([85, 88, 90]); x = 4 * t - a - b - c; } while (x < 70 || x > 100); return mkN(emo('📝') + sub(`前三次 ${a}、${b}、${c}<br>想平均 ${t} 分`), x, [t, x - 4, x + 4], { ask: '第 4 次要考幾分？' }); }
+   return mk('2, 4, 4, 4, 5, 5, 7, 9' + sub('標準差 = ?'), '2', ['4', '5', sq(2)], { ask: '老師最愛考的標準差！' });
+ }},
+ { id: 'prob2', s: 5, t: '機率難題', g: k => {
+   if (k === 0) { const n = R(4, 6); return mk(emo('🎟️'.repeat(n)) + sub(`${n} 支籤 1 支中<br>第 2 個抽`), F(1, n), [F(1, n - 1), F(1, 2), F(2, n), F(1, n + 1)], { ask: '先抽比較好嗎？' }); }
+   if (k === 1) return mk(emo('🎲🎲') + sub('至少一個 6？'), F(11, 36), [F(1, 3), F(1, 6), F(1, 36)], { ask: '機會有多大？' });
+   if (k === 2) return mk(emo('🚪🚪🚪') + sub('我選 1 號，主持人開 3 號是 🐐<br>換到 2 號會中的機率？'), F(2, 3), [F(1, 2), F(1, 3), '1'], { ask: '要不要換門？' });
+   if (k === 3) return mk(emo('🎂👥') + sub('班上 23 個人<br>有人同一天生日？'), '約 50%', ['約 6%', '約 25%', '約 90%'], { ask: '機率大概是多少？' });
+   return mk(emo('👶👶') + sub('兩個小孩，至少一個男生<br>兩個都是男生？'), F(1, 3), [F(1, 2), F(1, 4), F(2, 3)], { ask: '這題很多人答錯！' });
+ }},
+ { id: 'app', s: 6, t: '微積分應用', g: k => {
+   if (k === 0) { const a = R(1, 3), n = R(2, 5); return mkN(emo('🚗') + sub(`位置 s = ${a === 1 ? '' : a}<i>t</i>²<br><i>t</i> = ${n} 的速度？`), 2 * a * n, [a * n * n, a * n, 2 * a], { ask: '微分就是速度！' }); }
+   if (k === 1) { const m = R(5, 15), P = 4 * m; return mkN(emo('🐑🌾') + sub(`${P} 公尺圍籬<br>圍出長方形`), m * m, [(m - 1) * (m + 1), 2 * m * m, P * 2], { ask: '最大能圍多大？' }); }
+   if (k === 2) { const a = R(1, 2); const pts = []; for (let x = -2.2; x <= 2.21; x += .2) pts.push(`${(150 + x * 55).toFixed(1)},${(200 - x * x * 38).toFixed(1)}`);
+     const px = 150 + a * 55, py = 200 - a * a * 38, sl = 2 * a * 38 / 55; return mkN(pic('0 0 300 220', `<polyline points="${pts.join(' ')}"/><line x1="${px - 70}" y1="${py + 70 * sl}" x2="${px + 40}" y2="${py - 40 * sl}" stroke="${YL}"/><circle cx="${px}" cy="${py}" r="7" fill="${YL}" stroke="none"/>${lab(250, 190, '<tspan font-style="italic">y</tspan> = <tspan font-style="italic">x</tspan>²', { s: 28 })}`) + sub(`<i>x</i> = ${a} 的切線斜率？`), 2 * a, [a * a, a, 4 * a], { ask: '黃色那條線多斜？' }); }
+   if (k === 3) { const n = pick([3, 6]); const pts = [], sh = ['30,200']; for (let x = 0; x <= n + .001; x += n / 20) { const X = 30 + x * 240 / n, Y = 200 - (x * x) / (n * n) * 170; pts.push(`${X.toFixed(1)},${Y.toFixed(1)}`); sh.push(`${X.toFixed(1)},${Y.toFixed(1)}`); } sh.push('270,200');
+     return mkN(pic('0 0 300 230', `<polygon points="${sh.join(' ')}" fill="${DM}" stroke="none"/><polyline points="${pts.join(' ')}"/><line x1="20" y1="200" x2="290" y2="200"/>${lab(30, 220, 0, { s: 24 })}${lab(270, 220, n, { s: 24 })}${lab(90, 40, '<tspan font-style="italic">y</tspan> = <tspan font-style="italic">x</tspan>²', { s: 28 })}`) + sub('灰色面積 = ?'), n ** 3 / 3, [n ** 3, n * n, n ** 3 / 2], { ask: '彎彎的面積怎麼算？' }); }
+   return mk(emo('🏦✨') + sub('1 元，年利率 100%<br>每一瞬間都複利'), 'e 元', ['2 元', '∞ 元', '2.5 元'], { ask: '一年後變多少錢？' });
+ }},
+ { id: 'legend', s: 6, t: '傳奇名題', g: k => {
+   if (k === 0) return mkN(`${ex('<i>i</i>π')} + 1 = ?`, 0, [1, -1, 2], { ask: '世界最美的公式？' });
+   if (k === 1) return mk(`1 + ${fr(1, 4)} + ${fr(1, 9)} + ${fr(1, 16)} + …`, fr(sup('π', 2), 6), ['2', fr(sup('π', 2), 4), 'e'], { ask: '尤拉解開的巴塞爾問題！' });
+   if (k === 2) return mk(`1 + ${fr(1, 2)} + ${fr(1, 3)} + ${fr(1, 4)} + …`, '∞', ['2', 'e', 'ln 2'], { ask: '一直加會停嗎？' });
+   if (k === 3) return mk(`1 − ${fr(1, 3)} + ${fr(1, 5)} − ${fr(1, 7)} + …`, fr('π', 4), ['1', fr('π', 2), 'ln 2'], { ask: '這個會等於什麼？' });
+   return pick([() => mk(`1 + ${fr(1, '1 + ' + fr(1, '1 + …'))}`, fr('1 + ' + sq(5), 2), [fr('1 − ' + sq(5), 2), '2', sq(2)], { ask: '黃金比例？' }),
+     () => mk(`${integ('−∞', '∞')} ${ex(M + sup(X, 2))} d${X}`, sq('π'), ['π', '1', '2π'], { ask: '高斯積分！' })])();
+ }},
+];
+
+const ALLU = Object.fromEntries([...BASE, ...EXTRA].map(u => [u.id, u]));
+const OLD_IDS = BASE.map(u => u.id);
+const UNITS = ['zf', 'shop', 'md', 'area', 'eq',  'sq2', 'ang', 'py', 'speed', 'fac',  'quad', 'circ', 'ap', 'prob', 'old1',
+  'pow', 'money', 'log', 'pat', 'rem',  'trig', 'coord', 'vec', 'perm', 'old2',  'lim', 'stat', 'det', 'ex', 'prob2',
+  'd1', 'app', 'd2', 'flim', 'int', 'legend'].map(id => ALLU[id]);
+const GRAD = {}; [[2, '國中'], [5, '高中'], [6, '大學']].forEach(([st, n]) => { let last = -1; UNITS.forEach((u, i) => { if (u.s === st) last = i; }); GRAD[last] = n; });
+const did = i => S.done[UNITS[i].id];
+const GRANDPA = '周宗夯';
+const KIDNAMES = ['小寶', '小明', '阿弟', '小胖'];
+
+/* ================= 存檔 ================= */
+const KEY = 'yesun-math-v2';
+const S = { title: '', kid: '', done: {}, hearts: 0, seenIntro: false, voice: true };
+let DB = null;
+try { const s = JSON.parse(localStorage.getItem(KEY) || 'null'); if (s) Object.assign(S, s);
+  else { const o = JSON.parse(localStorage.getItem('yesun-math-v1') || 'null'); if (o) { Object.assign(S, o, { done: {} }); for (const k in o.done || {}) if (OLD_IDS[k]) S.done[OLD_IDS[k]] = o.done[k]; } } } catch (e) {}
+function save(){
+  try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {}
+  if (DB) DB.set({ state: JSON.stringify(S), at: Date.now() }).catch(() => {});
+}
+(async () => { // 登入 claude.ai 時，進度也存到雲端（換手機不會不見）
+  try {
+    if (!window.claude || !window.claude.use) return;
+    const [db, user] = await Promise.all([claude.use('db'), claude.use('user')]);
+    if (!db || !user) return;
+    const id = await user.id(); if (!id) return;
+    const ref = db.doc('data/users/' + id + '/progress');
+    const snap = await ref.get();
+    if (snap.exists) {
+      const r = JSON.parse(snap.data().state || '{}');
+      if (Object.keys(r.done || {}).length >= Object.keys(S.done).length && (r.hearts || 0) >= S.hearts) {
+        Object.assign(S, r); try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {}
+        if (screen === 'home' || screen === 'setup' || screen === 'name') go(!S.title ? 'setup' : !S.kid ? 'name' : 'home');
+      }
+    }
+    DB = ref; save();
+  } catch (e) {}
+})();
+
+/* ================= 聲音與語音 ================= */
+let AC;
+function ac(){ try { if (!AC) AC = new (window.AudioContext || window.webkitAudioContext)(); if (AC.state === 'suspended') AC.resume(); } catch (e) {} return AC; }
+function tone(f, t, d, type = 'sine', v = .18){ const a = ac(); if (!a) return; const o = a.createOscillator(), g = a.createGain(); o.type = type; o.frequency.value = f; const t0 = a.currentTime + t; g.gain.setValueAtTime(0, t0); g.gain.linearRampToValueAtTime(v, t0 + .015); g.gain.exponentialRampToValueAtTime(.001, t0 + d); o.connect(g).connect(a.destination); o.start(t0); o.stop(t0 + d + .05); }
+const sfx = {
+  tap: () => tone(660, 0, .08, 'triangle', .1),
+  good: () => [784, 988, 1319].forEach((f, i) => tone(f, i * .09, .35, 'triangle', .16)),
+  bad: () => { tone(330, 0, .18, 'sine', .12); tone(262, .14, .25, 'sine', .12); },
+  fan: () => [523, 659, 784, 1047, 784, 1047].forEach((f, i) => tone(f, i * .13, i === 5 ? .9 : .25, 'triangle', .17)),
+};
+let zhVoice = null;
+function pickVoice(){ try { const vs = speechSynthesis.getVoices(); zhVoice = vs.find(v => /zh[-_]TW/i.test(v.lang)) || vs.find(v => /zh/i.test(v.lang)) || null; } catch (e) {} }
+try { pickVoice(); speechSynthesis.onvoiceschanged = pickVoice; } catch (e) {}
+function say(html){
+  if (!S.voice) return;
+  try {
+    const t = html.replace(/<[^>]+>/g, '').replace(/[\p{Extended_Pictographic}️]/gu, '').replace(/[～~]/g, '');
+    speechSynthesis.cancel(); const u = new SpeechSynthesisUtterance(t);
+    u.lang = 'zh-TW'; if (zhVoice) u.voice = zhVoice; u.pitch = 1.55; u.rate = .95; speechSynthesis.speak(u);
+  } catch (e) {}
+}
+
+/* ================= 孫子（SVG） ================= */
+function star(cx, cy, r){ let p = ''; for (let i = 0; i < 10; i++) { const a = -Math.PI / 2 + i * Math.PI / 5, rr = i % 2 ? r * .45 : r; p += (cx + Math.cos(a) * rr).toFixed(1) + ',' + (cy + Math.sin(a) * rr).toFixed(1) + ' '; } return `<polygon points="${p}" fill="#f6c21a" stroke="#d48a00" stroke-width="2.5" stroke-linejoin="round"/>`; }
+function kidSVG(look, mood, cap){
+  const ink = '#2a1d18', skin = '#ffd9b8';
+  const shirt = ['#3f6fb4', '#f7f7f3', '#e47a39'][look];
+  const sc = [.84, .93, 1][look];
+  let eyes, mouth, brows = '', extra = '', blush = .55, br = 11;
+  const dotEye = (x, y) => `<ellipse cx="${x}" cy="${y}" rx="8" ry="10" fill="${ink}"/><circle cx="${x + 3}" cy="${y - 4}" r="3" fill="#fff"/>`;
+  const openMouth = `<path d="M80 136 Q100 166 120 136 Z" fill="#b5323a"/><path d="M88 149 Q100 158 112 149 Q100 144 88 149Z" fill="#ff8f8f"/>`;
+  switch (mood) {
+    case 'adore': eyes = star(74, 110, 17) + star(126, 110, 17); mouth = openMouth; blush = .9; br = 14;
+      extra = `<g fill="#f6c21a"><path d="M20 60 l4 10 10 4 -10 4 -4 10 -4 -10 -10 -4 10 -4z"/><path d="M178 46 l3 8 8 3 -8 3 -3 8 -3 -8 -8 -3 8 -3z"/><path d="M182 140 l3 7 7 3 -7 3 -3 7 -3 -7 -7 -3 7 -3z"/></g>`; break;
+    case 'happy': eyes = `<path d="M62 112 Q74 96 86 112" fill="none" stroke="${ink}" stroke-width="6" stroke-linecap="round"/><path d="M114 112 Q126 96 138 112" fill="none" stroke="${ink}" stroke-width="6" stroke-linecap="round"/>`; mouth = openMouth; blush = .8; break;
+    case 'ask': eyes = dotEye(74, 106) + dotEye(126, 106); mouth = `<ellipse cx="100" cy="142" rx="7" ry="9" fill="#b5323a"/>`;
+      brows = `<path d="M62 86 Q74 78 86 84" stroke="${ink}" stroke-width="5" fill="none" stroke-linecap="round"/><path d="M114 84 Q126 78 138 86" stroke="${ink}" stroke-width="5" fill="none" stroke-linecap="round"/>`;
+      extra = `<text x="168" y="62" font-size="58" font-weight="900" fill="#ee7b30" font-family="Noto Sans TC,sans-serif">?</text>`; break;
+    case 'puzzled': eyes = dotEye(74, 110) + dotEye(126, 110); mouth = `<path d="M84 144 q8 -7 16 0 t16 0" stroke="${ink}" stroke-width="5" fill="none" stroke-linecap="round"/>`;
+      brows = `<path d="M62 90 L86 86" stroke="${ink}" stroke-width="5" stroke-linecap="round"/><path d="M114 82 Q126 74 138 84" stroke="${ink}" stroke-width="5" fill="none" stroke-linecap="round"/>`;
+      extra = `<path d="M160 70 q8 14 0 20 q-8 -6 0 -20z" fill="#8fd0ff" stroke="#4aa3e0" stroke-width="2"/>`; break;
+    default: eyes = dotEye(74, 110) + dotEye(126, 110); mouth = `<path d="M86 138 Q100 152 114 138" stroke="${ink}" stroke-width="5" fill="none" stroke-linecap="round"/>`;
+  }
+  const collar = look === 0 ? `<path d="M78 196 L100 222 L122 196" fill="#fff" stroke="#e6e6e6" stroke-width="2"/>`
+    : look === 1 ? `<path d="M80 194 L100 210 L120 194" fill="#fff" stroke="#d8d8d0" stroke-width="2"/><path d="M95 208 L105 208 L109 250 L100 258 L91 250 Z" fill="#2c3e78"/>`
+    : `<path d="M70 192 Q100 222 130 192" fill="none" stroke="#c45e22" stroke-width="7"/><line x1="90" y1="208" x2="88" y2="238" stroke="#fff" stroke-width="4"/><line x1="110" y1="208" x2="112" y2="238" stroke="#fff" stroke-width="4"/>`;
+  const glasses = look === 2 ? `<g fill="none" stroke="#3a3a3a" stroke-width="4"><circle cx="74" cy="110" r="20"/><circle cx="126" cy="110" r="20"/><path d="M94 108 Q100 103 106 108"/></g>` : '';
+  const hat = cap ? `<g><path d="M40 52 L100 26 L160 52 L100 76 Z" fill="#1d1d26"/><rect x="70" y="56" width="60" height="22" rx="4" fill="#1d1d26"/><path d="M152 55 L156 92" stroke="#f2b41c" stroke-width="4"/><circle cx="156" cy="95" r="6" fill="#f2b41c"/></g>` : '';
+  return `<svg viewBox="0 0 200 260" aria-hidden="true"><g transform="translate(100 260) scale(${sc}) translate(-100 -260)">
+    <path d="M28 262 Q30 196 100 188 Q170 196 172 262 Z" fill="${shirt}" stroke="rgba(0,0,0,.12)" stroke-width="2"/>${collar}
+    <rect x="88" y="168" width="24" height="26" rx="8" fill="${skin}"/>
+    <circle cx="38" cy="116" r="13" fill="${skin}"/><circle cx="162" cy="116" r="13" fill="${skin}"/>
+    <circle cx="100" cy="110" r="64" fill="${skin}"/>
+    <path d="M36 108 Q30 40 100 40 Q170 40 164 108 Q156 78 132 72 Q126 86 104 78 Q86 90 70 80 Q50 86 36 108 Z" fill="#2e2320"/>
+    <ellipse cx="62" cy="134" rx="${br}" ry="${br * .62}" fill="#ff8f8f" opacity="${blush}"/><ellipse cx="138" cy="134" rx="${br}" ry="${br * .62}" fill="#ff8f8f" opacity="${blush}"/>
+    ${brows}${eyes}${glasses}${mouth}${hat}</g>${extra}</svg>`;
+}
+const curLook = () => { const i = UNITS.findIndex((u, j) => did(j) == null); return LOOK[UNITS[i < 0 ? UNITS.length - 1 : i].s]; };
+
+/* ================= 畫面 ================= */
+const app = document.getElementById('app');
+let screen = '';
+const T = () => S.title || '阿公';
+const KN = () => S.kid || '小寶';
+function setKid(el, look, mood, anim, cap){ el.innerHTML = kidSVG(look, mood, cap); el.className = el.className.replace(/\b(bob|jump|tilt)\b/g, '').trim(); void el.offsetWidth; el.classList.add(anim || 'bob'); }
+function bubble(el, html){ el.innerHTML = html; el.classList.remove('pop'); void el.offsetWidth; el.classList.add('pop'); }
+function hearts(n, el){ const r = el.getBoundingClientRect(); for (let i = 0; i < n; i++) { const h = document.createElement('div'); h.className = 'heart'; h.textContent = pick(['❤️', '💖', '✨', '💕']); h.style.left = (r.left + r.width * (.2 + rnd() * .6)) + 'px'; h.style.top = (r.top + r.height * .3) + 'px'; h.style.animationDelay = (i * .12) + 's'; document.body.appendChild(h); setTimeout(() => h.remove(), 2200); } }
+function fitAll(){
+  document.querySelectorAll('.q').forEach(q => { const b = q.parentElement; let fs = parseFloat(getComputedStyle(document.documentElement).fontSize) * 2.3; q.style.fontSize = fs + 'px'; let g = 0; while ((q.scrollWidth > b.clientWidth - 16 || q.scrollHeight > b.clientHeight - 8) && fs > 16 && g++ < 60) { fs *= .93; q.style.fontSize = fs + 'px'; } });
+  document.querySelectorAll('.ans:not(.good)').forEach(a => { a.style.fontSize = ''; let fs = parseFloat(getComputedStyle(a).fontSize), g = 0; while (a.scrollWidth > a.clientWidth + 1 && fs > 14 && g++ < 40) { fs *= .92; a.style.fontSize = fs + 'px'; } });
+  app.classList.toggle('tight', app.scrollHeight > app.clientHeight + 2 && screen === 'lesson');
+}
+addEventListener('resize', () => requestAnimationFrame(fitAll));
+
+function go(name, arg){ screen = name; ({ setup: viewSetup, name: viewName, home: viewHome, map: viewMap, lesson: viewLesson, exam: viewExam, grad: viewGrad })[name](arg); requestAnimationFrame(fitAll); }
+
+function viewSetup(){
+  app.innerHTML = `<div class="homewrap"><div class="homescene"><div class="bubble">你是我的…？</div><div class="kid big"></div></div>
+    <div class="pick3">${['阿公', '爺爺', '外公'].map(t => `<button class="big-btn" data-t="${t}">${t}</button>`).join('')}</div></div>`;
+  setKid(app.querySelector('.kid'), 0, 'ask');
+  app.querySelectorAll('[data-t]').forEach(b => b.onclick = () => { sfx.tap(); S.title = b.dataset.t; save(); go('name'); });
+}
+function viewName(){
+  app.innerHTML = `<div class="homewrap"><div class="homescene"><div class="bubble">${T()}，幫我取名字！</div><div class="kid big"></div></div>
+    <div class="names">${KIDNAMES.map(t => `<button class="big-btn" data-n="${t}">${t}</button>`).join('')}</div>
+    <button class="soft-btn" id="b-own">✏️ 自己寫名字</button>
+    <div class="own" hidden><input id="kidname" maxlength="6" placeholder="寫名字" autocomplete="off"><button class="big-btn green" id="b-ok">好了</button></div></div>`;
+  setKid(app.querySelector('.kid'), curLook(), 'happy');
+  const done = n => { n = (n || '').trim().slice(0, 6); if (!n) return; sfx.tap(); S.kid = n; save(); go('home'); };
+  app.querySelectorAll('[data-n]').forEach(b => b.onclick = () => done(b.dataset.n));
+  app.querySelector('#b-own').onclick = () => { sfx.tap(); app.querySelector('.own').hidden = false; app.querySelector('#b-own').hidden = true; app.querySelector('.names').hidden = true; const i = app.querySelector('#kidname'); i.value = S.kid || ''; i.focus(); };
+  app.querySelector('#b-ok').onclick = () => done(app.querySelector('#kidname').value);
+  app.querySelector('#kidname').onkeydown = e => { if (e.key === 'Enter') done(e.target.value); };
+}
+
+function nextUnit(){ return UNITS.findIndex((u, j) => did(j) == null); }
+function rank(){ const h = S.hearts; return h >= 200 ? '數學之神' : h >= 120 ? '我的偶像' : h >= 60 ? '超厲害' : h >= 20 ? '好厲害' : '新手老師'; }
+function viewHome(){
+  const i = nextUnit(), u = UNITS[i < 0 ? 0 : i];
+  const look = curLook();
+  let line;
+  if (!S.seenIntro) line = `${T()}！我是${KN()}！<br>可以教我數學嗎？`;
+  else if (i < 0) line = `${T()}是我的偶像！<br>再考我一次！`;
+  else line = `${T()}～今天教我<br>「${u.t}」好不好？`;
+  const doneN = Object.keys(S.done).length;
+  app.innerHTML = `<div class="homewrap">
+    <div class="logo">爺孫數學課<small>${GRANDPA}老師・${STAGES[u.s]}・第 ${Math.min(doneN + 1, UNITS.length)} 課</small></div>
+    <div class="homescene"><div class="bubble">${line}</div><div class="kid big"></div></div>
+    <div class="stat"><span>❤️ ${S.hearts}</span><span>📜 ${doneN} 張考卷</span><span>🏅 ${rank()}</span></div>
+    <button class="big-btn" id="b-go">${S.seenIntro ? '▶ 開始教' : '好！來！'}</button>
+    <div class="row"><button class="soft-btn" id="b-map">📚 全部課程</button><button class="soft-btn" id="b-voice">${S.voice ? '🔊 開' : '🔇 關'}</button><button class="soft-btn" id="b-name">✏️ ${KN()}</button></div>
+  </div>`;
+  setKid(app.querySelector('.kid'), look, S.seenIntro ? 'happy' : 'ask');
+  app.querySelector('#b-go').onclick = () => { ac(); sfx.tap(); S.seenIntro = true; save(); go('lesson', i < 0 ? R(0, UNITS.length - 1) : i); };
+  app.querySelector('#b-map').onclick = () => { sfx.tap(); go('map'); };
+  app.querySelector('#b-name').onclick = () => { sfx.tap(); go('name'); };
+  app.querySelector('#b-voice').onclick = () => { S.voice = !S.voice; save(); sfx.tap(); if (S.voice) say(T() + '～'); go('home'); };
+}
+
+function viewMap(){
+  const nx = nextUnit();
+  let h = `<div class="top"><button class="home" id="b-home" aria-label="回首頁">🏠</button><div class="dots" style="font-size:1.1rem;font-weight:900;color:var(--board)">全部課程</div><span class="love">❤️ ${S.hearts}</span></div><div class="mapwrap">`;
+  STAGES.forEach((st, s) => {
+    h += `<div class="stage-h">${st}</div><div class="units">`;
+    UNITS.forEach((u, i) => { if (u.s !== s) return;
+      const open = i === 0 || did(i - 1) != null || did(i) != null;
+      const cls = !open ? 'lock' : i === nx ? 'next' : '';
+      const right = did(i) != null ? `<span class="sc">${did(i)}</span>` : open ? '▶' : '🔒';
+      h += `<button class="unit ${cls}" data-i="${i}" ${open ? '' : 'disabled'}><span>${u.t}</span>${right}</button>`; });
+    h += '</div>';
+  });
+  app.innerHTML = h + '</div>';
+  app.querySelector('#b-home').onclick = () => { sfx.tap(); go('home'); };
+  app.querySelectorAll('.unit:not([disabled])').forEach(b => b.onclick = () => { ac(); sfx.tap(); go('lesson', +b.dataset.i); });
+  const n = app.querySelector('.unit.next'); if (n) n.scrollIntoView({ block: 'center' });
+}
+
+/* ---------- 上課（5 題） ---------- */
+const PRAISE = ['$好厲害！', '哇！$是天才！', '原來是這樣！我懂了！', '$教得好清楚！', '$好聰明喔！', '我以後要跟$一樣！', '$最棒了！', '$怎麼什麼都會！', '同學都沒有$厲害！'];
+const PRAISE2 = ['對耶！謝謝$！', '原來如此！$好棒！', '喔～我懂了！'];
+const ASK = ['$，這題怎麼算？', '$～教我！', '這題好難喔…', '$，答案是什麼？', '老師說這題會考！'];
+const tt = s => s.replace(/\$/g, T());
+let L = null;
+function viewLesson(ui){
+  L = { ui, i: 0, first: 0, qs: [0, 1, 2, 3, 4].map(k => UNITS[ui].g(k)) };
+  renderQ();
+}
+function renderQ(){
+  const u = UNITS[L.ui], q = L.qs[L.i], look = LOOK[u.s];
+  const wt = s => [...s.replace(/<span class="fr"><span>([^<]*)<\/span><span>([^<]*)<\/span><\/span>/g, (m, a, b) => a.length > b.length ? a : b).replace(/<[^>]+>/g, '')].reduce((n, c) => n + (/[\u3000-\u9fff\uff00-\uffef]/.test(c) ? 2 : 1), 0);
+  const one = q.opts.some(o => wt(o) > 7);
+  app.innerHTML = `<div class="lesson" style="display:flex;flex-direction:column;gap:.35rem;flex:1;min-height:0">
+    <div class="top"><button class="home" id="b-home" aria-label="回首頁">🏠</button>
+      <div class="dots">${[0, 1, 2, 3, 4].map(j => `<span class="dot ${j < L.i ? 'on' : j === L.i ? 'cur' : ''}"></span>`).join('')}</div>
+      <span class="love" id="love">❤️ ${S.hearts}</span></div>
+    <div class="scene"><div class="kid"><span class="chip">${KN()}・${STAGES[u.s]}</span></div><div class="bubble"></div></div>
+    <div class="board"><div class="q">${q.q}</div></div>
+    <div class="answers ${one ? 'one' : ''}">${q.opts.map((o, j) => `<button class="ans${L.i === 0 && L.ui === 0 ? ' glow' : ''}" data-j="${j}">${o}</button>`).join('')}</div>
+  </div>`;
+  const kid = app.querySelector('.kid'); const chip = kid.innerHTML;
+  setKid(kid, look, 'ask'); kid.insertAdjacentHTML('beforeend', chip);
+  const ask = tt(q.ask || pick(ASK));
+  bubble(app.querySelector('.bubble'), ask); say(ask);
+  app.querySelector('#b-home').onclick = () => { sfx.tap(); go('home'); };
+  L.wrong = 0;
+  app.querySelectorAll('.ans').forEach(b => b.onclick = () => answer(b, q));
+  requestAnimationFrame(fitAll);
+}
+function kidMood(mood, anim){ const kid = app.querySelector('.kid'); const chip = kid.querySelector('.chip').outerHTML; setKid(kid, LOOK[UNITS[L.ui].s], mood, anim); kid.insertAdjacentHTML('beforeend', chip); }
+function answer(btn, q){
+  if (btn.classList.contains('bad')) return;
+  ac();
+  const ok = q.opts[+btn.dataset.j] === q.ans;
+  const bub = app.querySelector('.bubble');
+  if (ok) {
+    btn.classList.add('good'); sfx.good();
+    let line;
+    if (L.wrong === 0) { L.first++; S.hearts++; line = tt(pick(PRAISE)); kidMood('adore', 'jump'); hearts(5, app.querySelector('.kid')); }
+    else { line = tt(pick(PRAISE2)); kidMood('happy', 'jump'); hearts(2, app.querySelector('.kid')); }
+    app.querySelector('#love').textContent = '❤️ ' + S.hearts; save();
+    bubble(bub, line); say(line);
+    setTimeout(() => showNext(btn), 450);
+  } else {
+    L.wrong++; btn.classList.add('bad'); sfx.bad();
+    if (L.wrong >= 2) {
+      const rb = [...app.querySelectorAll('.ans')].find(b => q.opts[+b.dataset.j] === q.ans);
+      rb.classList.add('reveal');
+      const line = tt('啊！是這個吧！<br>$故意考我的對不對 😆'); kidMood('happy', 'tilt'); bubble(bub, line); say(line);
+    } else { const line = pick(['咦？好像不是耶…', '嗯…再想一下？', '老師好像不是這樣教…']); kidMood('puzzled', 'tilt'); bubble(bub, line); say(line); }
+  }
+}
+function showNext(btn){
+  const wrap = app.querySelector('.answers'); const last = L.i === 4;
+  const div = document.createElement('div'); div.className = 'after';
+  div.innerHTML = `<div class="ans good">${btn.innerHTML}</div><button class="big-btn green" id="b-next">${last ? '📝 去考試！' : '下一題 ▶'}</button>`;
+  wrap.replaceWith(div);
+  requestAnimationFrame(fitAll);
+  div.querySelector('#b-next').onclick = () => { sfx.tap(); if (last) go('exam'); else { L.i++; renderQ(); } };
+}
+
+/* ---------- 考試 ---------- */
+function viewExam(){
+  const u = UNITS[L.ui], look = LOOK[u.s];
+  app.innerHTML = `<div class="examwrap"><div class="kid big"></div><div class="testing">📝 考試中<span class="pencil">✏️</span></div><div class="tiny">（點一下跳過）</div></div>`;
+  setKid(app.querySelector('.kid'), look, 'idle');
+  let done = false; const fin = () => { if (done) return; done = true; showScore(); };
+  setTimeout(fin, 2200); app.querySelector('.examwrap').onclick = fin;
+}
+function showScore(){
+  const ui = L.ui, u = UNITS[ui], look = LOOK[u.s];
+  const score = 60 + L.first * 8;
+  const prev = did(ui); S.done[u.id] = Math.max(prev || 0, score);
+  const bonus = score === 100 ? 3 : 1; S.hearts += bonus; save();
+  const line = score === 100 ? tt(`$！我考 100 分！<br>全班第一名！`) : score >= 84 ? tt(`$！我考 ${score} 分！<br>老師說我進步好多！`) : tt(`我考 ${score} 分！<br>下次跟$一起拿 100！`);
+  const stamp = score === 100 ? '滿分' : score >= 84 ? '讚' : '進步';
+  const grad = GRAD[ui] && prev == null;
+  app.innerHTML = `<div class="examwrap">
+    <div class="bubble"></div>
+    <div class="result"><div class="kid big"></div><div class="paper"><div class="ph">${STAGES[u.s]}・${u.t}<br>姓名：${KN()}</div><div class="score">${score}</div><div class="note">${T()}教得真好！</div><div class="stamp">${stamp}</div></div></div>
+    <div class="row" style="width:100%"><button class="soft-btn" id="b-home" style="flex:.45">🏠</button><button class="big-btn" id="b-next">${grad ? '🎓 畢業！' : ui === UNITS.length - 1 ? '再考一次 ▶' : '▶ 下一課'}</button></div>
+  </div>`;
+  setKid(app.querySelector('.kid'), look, score >= 84 ? 'adore' : 'happy', 'jump');
+  bubble(app.querySelector('.bubble'), line); say(line); sfx.fan(); confetti(score === 100 ? 160 : 70);
+  setTimeout(() => hearts(6, app.querySelector('.kid')), 300);
+  app.querySelector('#b-home').onclick = () => { sfx.tap(); go('home'); };
+  app.querySelector('#b-next').onclick = () => { sfx.tap(); if (grad) go('grad', ui); else go('lesson', ui === UNITS.length - 1 ? R(0, UNITS.length - 1) : ui + 1); };
+}
+
+/* ---------- 畢業典禮 ---------- */
+function viewGrad(ui){
+  const which = GRAD[ui], look = LOOK[UNITS[ui].s];
+  const line = which === '大學' ? tt('$！我大學畢業了！<br>我也想當數學老師，<br>跟$一樣！') : tt(`$！我${which}畢業了！<br>都是$教的，謝謝你！`);
+  app.innerHTML = `<div class="examwrap"><div class="bubble"></div><div class="kid big"></div>
+    <div class="diploma"><small>畢業證書</small>${KN()}　${which}畢業 🎓<small>指導老師：${GRANDPA}${T()}</small></div>
+    <button class="big-btn" id="b-next">${which === '大學' ? '🏠 回家' : '▶ 升上' + (which === '國中' ? '高中' : '大學')}</button></div>`;
+  setKid(app.querySelector('.kid'), look, 'adore', 'jump', true);
+  bubble(app.querySelector('.bubble'), line); say(line); sfx.fan(); confetti(220);
+  S.hearts += 10; save();
+  app.querySelector('#b-next').onclick = () => { sfx.tap(); if (which === '大學') go('home'); else go('lesson', ui + 1); };
+}
+
+/* ---------- 彩帶 ---------- */
+const fx = document.getElementById('fx'), cx = fx.getContext('2d'); let parts = [], raf = 0;
+function confetti(n){
+  const dpr = Math.min(devicePixelRatio || 1, 1.5); fx.width = innerWidth * dpr; fx.height = innerHeight * dpr; cx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  const cols = ['#f2b41c', '#ee7b30', '#d2382b', '#3c9a58', '#3f6fb4', '#ff8fb0'];
+  for (let i = 0; i < n; i++) parts.push({ x: innerWidth / 2 + (rnd() - .5) * 80, y: innerHeight * .35, vx: (rnd() - .5) * 14, vy: -rnd() * 14 - 4, r: rnd() * 6, vr: (rnd() - .5) * .4, w: 6 + rnd() * 6, h: 4 + rnd() * 6, c: pick(cols), life: 0 });
+  if (!raf) raf = requestAnimationFrame(tick);
+}
+function tick(){
+  cx.clearRect(0, 0, innerWidth, innerHeight);
+  parts = parts.filter(p => p.life < 160 && p.y < innerHeight + 20);
+  for (const p of parts) { p.life++; p.vy += .35; p.vx *= .985; p.x += p.vx; p.y += p.vy; p.r += p.vr; cx.save(); cx.translate(p.x, p.y); cx.rotate(p.r); cx.fillStyle = p.c; cx.fillRect(-p.w / 2, -p.h / 2, p.w, p.h); cx.restore(); }
+  raf = parts.length ? requestAnimationFrame(tick) : 0;
+  if (!raf) cx.clearRect(0, 0, innerWidth, innerHeight);
+}
+
+/* 測試用：window.__gen(i,k) 產生一題 */
+window.__gen = (i, k) => UNITS[i].g(k); window.__units = UNITS.length;
+go(!S.title ? 'setup' : !S.kid ? 'name' : 'home');
+</script>
+</body></html>
