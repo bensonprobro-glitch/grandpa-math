@@ -597,6 +597,8 @@ const S = { title: '', kid: '', done: {}, hearts: 0, seenIntro: false, voice: tr
 let DB = null, DBH = null;
 try { const s = JSON.parse(localStorage.getItem(KEY) || 'null'); if (s) Object.assign(S, s);
   else { const o = JSON.parse(localStorage.getItem('yesun-math-v1') || 'null'); if (o) { Object.assign(S, o, { done: {} }); for (const k in o.done || {}) if (OLD_IDS[k]) S.done[OLD_IDS[k]] = o.done[k]; } } } catch (e) {}
+/* 內建存檔：連不上任何雲端時也能用存檔碼找回（Benson 手機 2026-11-10 的進度） */
+const PRESET = { LG6KVHD8: {"title": "爺爺", "kid": "小胖", "done": {"zf": 100, "shop": 92, "md": 100, "area": 100, "eq": 100, "sq2": 100, "ang": 100, "py": 100, "speed": 100, "fac": 92, "quad": 100, "circ": 100, "ap": 100, "prob": 100, "old1": 100, "pow": 100, "money": 100, "log": 100}, "hearts": 152, "seenIntro": true, "voice": true, "code": "LG6KVHD8", "stat": {"q": 94, "first": 92, "full": 16, "days": 1, "last": "2026-11-10"}, "log": [{"u": "log", "s": 100, "t": 1794321022164}, {"u": "money", "s": 100, "t": 1794320943554}, {"u": "pow", "s": 100, "t": 1794320804895}, {"u": "old1", "s": 100, "t": 1794320751033}, {"u": "prob", "s": 100, "t": 1794320355140}, {"u": "ap", "s": 100, "t": 1794320298229}, {"u": "circ", "s": 100, "t": 1794320171003}, {"u": "quad", "s": 100, "t": 1794320091588}, {"u": "fac", "s": 92, "t": 1794320010270}, {"u": "speed", "s": 100, "t": 1794319894811}, {"u": "py", "s": 100, "t": 1794319783711}, {"u": "ang", "s": 100, "t": 1794319753493}, {"u": "sq2", "s": 100, "t": 1794319651402}, {"u": "eq", "s": 100, "t": 1794319526760}, {"u": "area", "s": 100, "t": 1794319470465}, {"u": "md", "s": 100, "t": 1794319400218}, {"u": "shop", "s": 92, "t": 1794319348406}, {"u": "zf", "s": 100, "t": 1794319127897}], "at": 1794321270310} };
 const CODE_ABC = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 function newCode(){ let c = ''; try { const a = crypto.getRandomValues(new Uint8Array(8)); for (const x of a) c += CODE_ABC[x % 32]; } catch (e) { for (let i = 0; i < 8; i++) c += CODE_ABC[Math.floor(Math.random() * 32)]; } return c; }
 function fixState(){ if (!S.code) S.code = newCode(); S.stat = Object.assign({ q: 0, first: 0, full: 0, days: 0, last: '' }, S.stat || {}); if (!Array.isArray(S.log)) S.log = []; if (!S.done || typeof S.done !== 'object') S.done = {}; }
@@ -630,6 +632,7 @@ async function restoreCode(code){
   code = (code || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
   if (code.length !== 8) return '存檔碼是 8 個字';
   const take = r => { adopt(Object.assign({}, r, { code: newCode() })); cloud.st = 'ok'; save(); pushCloud(); return ''; };
+  if (PRESET[code]) return take(JSON.parse(JSON.stringify(PRESET[code])));
   if (DBH) { try { const sn = await DBH.doc('codes/' + code).get(); if (sn.exists) { const r = JSON.parse(sn.data().state || 'null'); if (r && typeof r === 'object') return take(r); } } catch (e) {} }
   try { const r = await rpc('gm_load', { p_code: code }); if (!r || typeof r !== 'object') return '找不到這組存檔碼'; return take(r); }
   catch (e) { return DBH ? '找不到這組存檔碼' : '現在連不上網路，等一下再試'; }
@@ -641,8 +644,8 @@ setTimeout(pullCloud, 50);
   try {
     if (!window.claude || !window.claude.use) return;
     const [db, user] = await Promise.all([claude.use('db'), claude.use('user')]);
+    if (db) DBH = db;
     if (!db || !user) return;
-    DBH = db;
     const id = await user.id(); if (!id) return;
     const ref = db.doc('data/users/' + id + '/progress');
     const snap = await ref.get();
