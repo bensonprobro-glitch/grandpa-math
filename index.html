@@ -86,7 +86,11 @@ sup,sub{font-size:.6em;line-height:0}
 /* 黑板 */
 .board{flex:1 1 auto;min-height:0;background:radial-gradient(ellipse at 50% 40%,var(--board-in),var(--board));border:.35rem solid var(--frame);border-radius:.45rem;box-shadow:inset 0 0 1.2rem rgba(0,0,0,.35),0 .15rem 0 #6c4426;color:var(--chalk);display:flex;align-items:center;justify-content:center;overflow:hidden;position:relative;padding:.3rem}
 .q{font-size:2.3rem;text-align:center;line-height:1.35;white-space:nowrap;font-weight:600}
-.q .sub{font-size:.75em;color:var(--chalk-dim);font-family:var(--f-ui);font-weight:700}
+.q{width:100%;box-sizing:border-box;padding:0 .2rem}
+.q .sub{font-size:.75em;color:var(--chalk-dim);font-family:var(--f-ui);font-weight:700;white-space:normal;text-wrap:balance;line-height:1.3;margin-top:.15em}
+.mat.br{border-left:0;border-right:0;position:relative;padding:0 .45em}
+.mat.br::before,.mat.br::after{content:"";position:absolute;top:0;bottom:0;width:.22em;border:.08em solid currentColor}
+.mat.br::before{left:0;border-right:0}.mat.br::after{right:0;border-left:0}
 .q .emo{font-family:var(--f-ui);font-size:.9em;letter-spacing:.05em}
 .q svg{display:block;margin:0 auto;height:3.4em;width:auto;overflow:visible}
 
@@ -224,6 +228,7 @@ function poly(c, v = X){ const n = c.length - 1; let s = ''; c.forEach((a, i) =>
 const ev = (c, x) => c.reduce((s, a) => s * x + a, 0);
 const lim = (v, to) => `<span class="lim">lim<small>${v}→${to}</small></span>`;
 const integ = (lo, hi) => `<span class="int"><b>∫</b>${hi === undefined ? '' : `<span class="lims"><span>${hi}</span><span>${lo}</span></span>`}</span>`;
+const matB = rows => mat(rows).replace('class="mat"', 'class="mat br"');
 const mat = rows => `<span class="mat" style="grid-template-columns:repeat(${rows[0].length},auto)">${rows.flat().map(v => `<span>${N(v)}</span>`).join('')}</span>`;
 const sub = t => `<div class="sub">${t}</div>`;
 const emo = t => `<span class="emo">${t}</span>`;
@@ -249,8 +254,8 @@ function mkN(q, ans, ds, extra = {}){ return mk(q, N(ans), ds.map(N), { fill: ()
 const xq = sub(X + ' = ?');
 
 /* ================= 22 個單元：國一 → 大學 ================= */
-const STAGES = ['國一', '國二', '國三', '高一', '高二', '高三', '大學'];
-const LOOK = [0, 0, 0, 1, 1, 1, 2];
+const STAGES = ['國一', '國二', '國三', '高一', '高二', '高三', '大學', '考研究所', '碩士班', '博士班', '數學家'];
+const LOOK = [0, 0, 0, 1, 1, 1, 2, 2, 3, 3, 4];
 const BASE = [
  /* 國一 */
  { s: 0, id: 'zf', t: '正負數', g: k => {
@@ -285,22 +290,22 @@ const BASE = [
  { s: 1, id: 'py', t: '畢氏定理', g: k => {
    const T = [[3, 4, 5], [6, 8, 10], [5, 12, 13], [8, 15, 17], [9, 12, 15], [7, 24, 25]];
    const [a, b, c] = pick(k < 2 ? T.slice(0, 3) : T);
-   if (k < 2) return mkN(tri(a, b, '?'), c, [a + b, c + 1, c - 1, a * b / 2], { ask: '阿公，斜邊多長？' });
-   if (k < 4) return mkN(tri(a, '?', c), b, [c - a, c + a, b + 1, b - 1], { ask: '這邊多長？' });
+   if (k < 2) return mkN(tri(a, b, '?') + sub('直角三角形：斜邊 ? 多長？'), c, [a + b, c + 1, c - 1, a * b / 2], { ask: '阿公，斜邊多長？' });
+   if (k < 4) return mkN(tri(a, '?', c) + sub('直角三角形：底邊 ? 多長？'), b, [c - a, c + a, b + 1, b - 1], { ask: '這邊多長？' });
    const [p, q] = pick([[1, 2], [2, 3], [1, 3], [2, 5], [3, 5]]); const s = p * p + q * q;
    const nsq = n => Number.isInteger(Math.sqrt(n)) ? null : sq(n);
-   return mk(tri(p, q, '?'), sq(s), [N(p + q), nsq(s + 1), nsq(p + q), nsq(s - 1), nsq(s + 2), nsq(2 * s)], { ask: '斜邊是幾？' });
+   return mk(tri(p, q, '?') + sub('直角三角形：斜邊 ? 多長？'), sq(s), [N(p + q), nsq(s + 1), nsq(p + q), nsq(s - 1), nsq(s + 2), nsq(2 * s)], { ask: '斜邊是幾？' });
  }},
  { s: 1, id: 'fac', t: '因式分解', g: k => {
    let p, q;
    if (k < 3) {
      do { p = R(-7, 7); q = R(-7, 7); } while (!p || !q || p === q || p === -q || (k < 2 && (p < 0 || q < 0)));
      const f = (a, b) => `(${X}${pm(a)})(${X}${pm(b)})`;
-     return mk(poly([1, p + q, p * q]) + ' = ?', f(p, q), [f(-p, -q), f(p, -q), f(-p, q)], { ask: '阿公，怎麼拆？' });
+     return mk(poly([1, p + q, p * q]) + sub('因式分解成？'), f(p, q), [f(-p, -q), f(p, -q), f(-p, q)], { ask: '阿公，怎麼拆？' });
    }
    do { p = R(-7, 7); q = R(-6, 6); } while (!q || p % 2 === 0 || p === q || p === -q || p + 2 * q === 0);
    const g = (a, b) => `(2${X}${pm(a)})(${X}${pm(b)})`;
-   return mk(poly([2, p + 2 * q, p * q]) + ' = ?', g(p, q), [g(-p, -q), g(q, p), g(p, -q), g(-p, q)], { ask: '前面有 2，好難…' });
+   return mk(poly([2, p + 2 * q, p * q]) + sub('因式分解成？'), g(p, q), [g(-p, -q), g(q, p), g(p, -q), g(-p, q)], { ask: '前面有 2，好難…' });
  }},
  /* 國三 */
  { s: 2, id: 'quad', t: '二次方程式', g: k => {
@@ -312,12 +317,12 @@ const BASE = [
    if (k === 4) return mkN('1 + 2 + 3 + … + 100', 5050, [5000, 5100, 10100], { ask: '要一個一個加嗎？' });
    const a = R(1, 9), d = R(2, 5) * (k === 3 ? -1 : 1), n = [5, 8, 10, 20][k];
    const seq = [0, 1, 2, 3].map(i => N(a + i * d)).join(', ') + ', …';
-   return mkN(`<div>${seq}</div>` + sub(`第 ${n} 個 = ?`), a + (n - 1) * d, [a + n * d, a + (n - 2) * d, n * d], { ask: '第 ' + n + ' 個是多少？' });
+   return mkN(`<div>${seq}</div>` + sub(`照這個規律，第 ${n} 個是多少？`), a + (n - 1) * d, [a + n * d, a + (n - 2) * d, n * d], { ask: '第 ' + n + ' 個是多少？' });
  }},
  { s: 2, id: 'prob', t: '機率', g: k => {
-   const L = [[0, '🎲', '擲出 6？', 1, 6], [0, '🎲', '擲出偶數？', 1, 2], [1, '🔴🔴🔴⚪⚪', '抽到 🔴？', 3, 5], [1, '🎲', '大於 4？', 1, 3],
-     [2, '🪙🪙', '兩個都正面？', 1, 4], [2, '🔴🔴⚪⚪⚪', '抽到 ⚪？', 3, 5], [3, '🪙🪙🪙', '三個都正面？', 1, 8], [3, '🎲', '擲出質數？', 1, 2],
-     [4, '🎲🎲', '加起來是 7？', 1, 6], [4, '🎲🎲', '兩個都是 6？', 1, 36]].filter(x => x[0] === k);
+   const L = [[0, '🎲', '擲一顆骰子<br>擲出 6 的機率？', 1, 6], [0, '🎲', '擲一顆骰子<br>擲出偶數的機率？', 1, 2], [1, '🔴🔴🔴⚪⚪', '袋子裡 3 紅 2 白，摸一顆<br>摸到 🔴 的機率？', 3, 5], [1, '🎲', '擲一顆骰子<br>點數大於 4 的機率？', 1, 3],
+     [2, '🪙🪙', '丟兩枚硬幣<br>兩個都是正面的機率？', 1, 4], [2, '🔴🔴⚪⚪⚪', '袋子裡 2 紅 3 白，摸一顆<br>摸到 ⚪ 的機率？', 3, 5], [3, '🪙🪙🪙', '丟三枚硬幣<br>三個都是正面的機率？', 1, 8], [3, '🎲', '擲一顆骰子<br>擲出質數的機率？', 1, 2],
+     [4, '🎲🎲', '擲兩顆骰子<br>點數加起來是 7 的機率？', 1, 6], [4, '🎲🎲', '擲兩顆骰子<br>兩顆都是 6 的機率？', 1, 36]].filter(x => x[0] === k);
    const [, pic, txt, p, q] = pick(L);
    const pool = [[1, 2], [1, 3], [1, 4], [1, 6], [1, 8], [2, 5], [3, 5], [1, 12], [1, 36], [2, 3], [5, 6], [3, 8]].map(([a, b]) => F(a, b));
    return mk(`<div class="emo">${pic}</div>` + sub(txt), F(p, q), shuffle(pool.slice()), { ask: '機會有多大？' });
@@ -346,7 +351,7 @@ const BASE = [
    const a = k === 0 ? R(1, 2) : R(1, 3) * sgn();
    const div = `(${X}${pm(-a)})`;
    const r = ev(c, a);
-   return mkN(`<div>f(${X}) = ${poly(c)}</div>` + sub(`÷ ${div}　餘數 = ?`), r, [ev(c, -a), r + a, c[deg]], { ask: '阿公，餘數是多少？' });
+   return mkN(`<div>f(${X}) = ${poly(c)}</div>` + sub(`除以 ${div} 的餘數 = ?`), r, [ev(c, -a), r + a, c[deg]], { ask: '阿公，餘數是多少？' });
  }},
  /* 高二 */
  { s: 4, id: 'trig', t: '三角函數', g: k => {
@@ -361,17 +366,17 @@ const BASE = [
  }},
  { s: 4, id: 'vec', t: '向量', g: k => {
    const V = (a, b) => `(${N(a)}, ${N(b)})`;
-   if (k < 3) { const m = k ? 6 : 5; const a = R(1, m) * (k ? sgn() : 1), b = R(1, m) * (k > 1 ? sgn() : 1), c = R(1, m) * (k ? sgn() : 1), d = R(1, m); return mkN(`${V(a, b)} · ${V(c, d)}`, a * c + b * d, [a * d + b * c, a * c - b * d, a + b + c + d], { ask: '內積怎麼算？' }); }
-   if (k === 3) { const [a, b, c] = pick([[3, 4, 5], [6, 8, 10], [5, 12, 13], [8, 6, 10]]); return mkN(`| ${V(a, b)} | = ?`, c, [a + b, a * a + b * b, c + 1], { ask: '這個箭頭多長？' }); }
+   if (k < 3) { const m = k ? 6 : 5; const a = R(1, m) * (k ? sgn() : 1), b = R(1, m) * (k > 1 ? sgn() : 1), c = R(1, m) * (k ? sgn() : 1), d = R(1, m); return mkN(`${V(a, b)} · ${V(c, d)}` + sub('兩個向量的內積 = ?'), a * c + b * d, [a * d + b * c, a * c - b * d, a + b + c + d], { ask: '內積怎麼算？' }); }
+   if (k === 3) { const [a, b, c] = pick([[3, 4, 5], [6, 8, 10], [5, 12, 13], [8, 6, 10]]); return mkN(`| ${V(a, b)} |` + sub('這個向量的長度 = ?'), c, [a + b, a * a + b * b, c + 1], { ask: '這個箭頭多長？' }); }
    const b = R(1, 4), c = R(1, 5), a = b * R(1, 3); const kk = -a * c / b;
-   return mkN(`${V(a, b)} ⊥ (${c}, <i>k</i>)` + sub('<i>k</i> = ?'), kk, [-kk, a * c, kk + 1], { ask: '垂直的話…' });
+   return mkN(`${V(a, b)} ⊥ (${c}, <i>k</i>)` + sub('兩個向量垂直，<i>k</i> = ?'), kk, [-kk, a * c, kk + 1], { ask: '垂直的話…' });
  }},
  { s: 4, id: 'perm', t: '排列組合', g: k => {
    if (k === 0) { const n = R(3, 5); return mkN(`${n}! = ?`, fact(n), [n * (n - 1), n * n, fact(n) + n]); }
-   if (k === 1) { const f = shuffle(['🍎', '🍌', '🍇', '🍊', '🍓']).slice(0, R(3, 4)); return mkN(`<div class="emo">${f.join('')}</div>` + sub('排成一排？'), fact(f.length), [f.length * f.length, f.length * 2, fact(f.length) / 2], { ask: '有幾種排法？' }); }
-   if (k === 2) { const n = R(4, 6); return mkN(`<div class="emo">${'🙂'.repeat(n)}</div>` + sub('選 2 人？'), comb(n, 2), [n * (n - 1), n * 2, n + 2], { ask: '有幾種選法？' }); }
+   if (k === 1) { const f = shuffle(['🍎', '🍌', '🍇', '🍊', '🍓']).slice(0, R(3, 4)); return mkN(`<div class="emo">${f.join('')}</div>` + sub(`${f.length} 種水果排成一排<br>有幾種排法？`), fact(f.length), [f.length * f.length, f.length * 2, fact(f.length) / 2], { ask: '有幾種排法？' }); }
+   if (k === 2) { const n = R(4, 6); return mkN(`<div class="emo">${'🙂'.repeat(n)}</div>` + sub(`${n} 個人裡面選 2 個<br>有幾種選法？`), comb(n, 2), [n * (n - 1), n * 2, n + 2], { ask: '有幾種選法？' }); }
    if (k === 3) { const n = R(5, 7), r = R(2, 3); return mkN(Cnk(n, r) + ' = ?', comb(n, r), [comb(n, r) * fact(r), n * r, comb(n, r) + n]); }
-   const n = R(6, 10); return mkN(`<div class="emo">${'🙂'.repeat(Math.min(n, 8))}${n > 8 ? '…' : ''}</div>` + sub(`${n} 人互相握手 🤝`), comb(n, 2), [n * (n - 1), n * 2, comb(n, 2) + n], { ask: '總共握幾次手？' });
+   const n = R(6, 10); return mkN(`<div class="emo">${'🙂'.repeat(Math.min(n, 8))}${n > 8 ? '…' : ''}</div>` + sub(`${n} 個人，每兩人握一次手 🤝<br>一共握幾次？`), comb(n, 2), [n * (n - 1), n * 2, comb(n, 2) + n], { ask: '總共握幾次手？' });
  }},
  /* 高三 */
  { s: 5, id: 'lim', t: '極限', g: k => {
@@ -379,7 +384,7 @@ const BASE = [
    if (k === 0) return mk(`${L} ${fr(1, n)} = ?`, '0', ['1', '∞', M + '1']);
    if (k === 1) { const a = R(2, 6), b = R(1, 5), c = R(1, 4), d = R(1, 6); return mk(`${L} ${fr(a + n + ' + ' + b, c === 1 ? n + ' + ' + d : c + n + ' + ' + d)}`, F(a, c), [F(b, d), F(a + b, c + d), '∞', '0', F(c, a)], { fill: () => F(R(1, 9), R(2, 9)) }); }
    if (k === 2) { const a = R(2, 5), c = R(2, 5); return mk(`${L} ${fr(a + sup(n, 2) + ' + 1', c + sup(n, 2) + ' + ' + n)}`, F(a, c), ['0', '∞', F(c, a), F(a + 1, c)]); }
-   if (k === 3) { const [r, s, t, ans] = pick([[fr(1, 2), fr(1, 4), fr(1, 8), '2'], [fr(1, 3), fr(1, 9), fr(1, 27), F(3, 2)], [fr(2, 3), fr(4, 9), fr(8, 27), '3']]); return mk(`1 + ${r} + ${s} + ${t} + …`, ans, ['∞', '1', F(5, 4), '4'], { ask: '一直加下去會變多少？' }); }
+   if (k === 3) { const [r, s, t, ans] = pick([[fr(1, 2), fr(1, 4), fr(1, 8), '2'], [fr(1, 3), fr(1, 9), fr(1, 27), F(3, 2)], [fr(2, 3), fr(4, 9), fr(8, 27), '3']]); return mk(`1 + ${r} + ${s} + ${t} + …` + sub('一直加下去 = ?'), ans, ['∞', '1', F(5, 4), '4'], { ask: '一直加下去會變多少？' }); }
    return mk('0.999… = ?', '1', ['0.9', fr(99, 100), '1.1'], { ask: '這個是 1 嗎？好奇怪！' });
  }},
  { s: 5, id: 'det', t: '行列式', g: k => {
@@ -389,11 +394,11 @@ const BASE = [
    return mkN(mat([[a, b, c], [0, e, f], [0, 0, i]]) + ' = ?', a * e * i, [a + e + i, -a * e * i, a * e * i + b * f]);
  }},
  { s: 5, id: 'ex', t: '期望值', g: k => {
-   if (k === 0) { const A = pick([10, 20, 100]); return mkN(`<div class="emo">🪙</div>` + sub(`正面 ${A} 元 · 反面 0 元`), A / 2, [A, A / 4, A * 2], { ask: '平均能拿多少？' }); }
-   if (k === 1) return mk(`<div class="emo">🎲</div>` + sub('點數的期望值？'), '3.5', ['3', '4', '6'], { ask: '平均擲出幾點？' });
-   if (k === 2) { const A = pick([40, 100, 200]); return mkN(`<div class="emo">🎯</div>` + sub(`${fr(1, 4)} 機會得 ${A} 分`), A / 4, [A / 2, A, A * 4], { ask: '平均得幾分？' }); }
-   if (k === 3) { const A = pick([100, 60, 80]), B = pick([20, 40]); return mkN(`<div class="emo">🪙</div>` + sub(`正面 +${A} · 反面 ${M}${B}`), (A - B) / 2, [(A + B) / 2, A - B, A], { ask: '這個遊戲划算嗎？' }); }
-   const A = pick([60, 120, 30]); return mkN(`<div class="emo">🎲</div>` + sub(`擲出 6 得 ${A} 元`), A / 6, [A / 2, A, A / 3], { ask: '平均能拿多少？' });
+   if (k === 0) { const A = pick([10, 20, 100]); return mkN(`<div class="emo">🪙</div>` + sub(`丟硬幣：正面得 ${A} 元，反面 0 元<br>平均每丟一次得幾元？`), A / 2, [A, A / 4, A * 2], { ask: '平均能拿多少？' }); }
+   if (k === 1) return mk(`<div class="emo">🎲</div>` + sub('擲一顆骰子<br>平均會擲出幾點？'), '3.5', ['3', '4', '6'], { ask: '平均擲出幾點？' });
+   if (k === 2) { const A = pick([40, 100, 200]); return mkN(`<div class="emo">🎯</div>` + sub(`射飛鏢：有 ${fr(1, 4)} 的機會得 ${A} 分<br>平均每射一次得幾分？`), A / 4, [A / 2, A, A * 4], { ask: '平均得幾分？' }); }
+   if (k === 3) { const A = pick([100, 60, 80]), B = pick([20, 40]); return mkN(`<div class="emo">🪙</div>` + sub(`丟硬幣：正面贏 ${A} 元，反面輸 ${B} 元<br>平均每丟一次贏幾元？`), (A - B) / 2, [(A + B) / 2, A - B, A], { ask: '這個遊戲划算嗎？' }); }
+   const A = pick([60, 120, 30]); return mkN(`<div class="emo">🎲</div>` + sub(`擲骰子：擲出 6 得 ${A} 元，其他 0 元<br>平均每擲一次得幾元？`), A / 6, [A / 2, A, A / 3], { ask: '平均能拿多少？' });
  }},
  /* 大學微積分 */
  { s: 6, id: 'd1', t: '微分', g: k => {
@@ -456,137 +461,299 @@ const tnum = n => n * (n + 1) / 2;
 
 const EXTRA = [
  { id: 'shop', s: 0, t: '買東西', g: k => {
-   if (k === 0) { const p = pick([12, 15, 25, 35]), n = R(3, 6); return mkN(emo('🍎') + sub(`一個 ${p} 元<br>買 ${n} 個`), p * n, [p + n, p * (n + 1), p * n - 10], { ask: '一共要付多少錢？' }); }
-   if (k === 1) { const p = R(12, 88), m = p > 50 ? 100 : pick([50, 100]); return mkN(emo('💵 → 🥤') + sub(`付 ${m} 元<br>飲料 ${p} 元`), m - p, [m - p + 10, m - p - 10, p], { ask: '要找多少錢？' }); }
-   if (k === 2) { const p = pick([500, 800, 1200, 2000]), d = pick([8, 7, 9]); return mkN(emo('👕') + sub(`${p} 元<br>打 ${d} 折`), p * d / 10, [p * (10 - d) / 10, p - d * 10, p * d / 100], { ask: '打折後多少錢？' }); }
-   if (k === 3) { const u = pick([60, 80, 45]), a = R(2, 4), b = a + R(2, 4); return mkN(emo('🍱') + sub(`${a} 個 ${u * a} 元<br>${b} 個呢？`), u * b, [u * a + b, u * (b - 1), u * a * 2], { ask: '便當多少錢？' }); }
-   const n = pick([12, 18, 24]); return mkN(emo('🧋') + sub(`買 5 送 1<br>要 ${n} 杯`), n * 5 / 6, [n - 1, n, n - 2], { ask: '只要付幾杯的錢？' });
+   if (k === 0) { const p = pick([12, 15, 25, 35]), n = R(3, 6); return mkN(emo('🍎') + sub(`蘋果一個 ${p} 元，買 ${n} 個<br>一共幾元？`), p * n, [p + n, p * (n + 1), p * n - 10], { ask: '一共要付多少錢？' }); }
+   if (k === 1) { const p = R(12, 88), m = p > 50 ? 100 : pick([50, 100]); return mkN(emo('💵 → 🥤') + sub(`飲料 ${p} 元，付了 ${m} 元<br>要找幾元？`), m - p, [m - p + 10, m - p - 10, p], { ask: '要找多少錢？' }); }
+   if (k === 2) { const p = pick([500, 800, 1200, 2000]), d = pick([8, 7, 9]); return mkN(emo('👕') + sub(`衣服 ${p} 元，打 ${d} 折<br>要付幾元？`), p * d / 10, [p * (10 - d) / 10, p - d * 10, p * d / 100], { ask: '打折後多少錢？' }); }
+   if (k === 3) { const u = pick([60, 80, 45]), a = R(2, 4), b = a + R(2, 4); return mkN(emo('🍱') + sub(`便當 ${a} 個 ${u * a} 元<br>買 ${b} 個要幾元？`), u * b, [u * a + b, u * (b - 1), u * a * 2], { ask: '便當多少錢？' }); }
+   const n = pick([12, 18, 24]); return mkN(emo('🧋') + sub(`買 5 杯送 1 杯，想拿到 ${n} 杯<br>要付幾杯的錢？`), n * 5 / 6, [n - 1, n, n - 2], { ask: '只要付幾杯的錢？' });
  }},
  { id: 'area', s: 0, t: '面積', g: k => {
    const ask = { ask: '這塊地多大？' };
-   if (k === 0) { const w = R(3, 9), h = R(2, 6); return mkN(pic('-10 -10 330 200', `<rect x="20" y="20" width="230" height="130" fill="${DM}"/>${lab(135, 176, w)}${lab(265, 85, h, { a: 'start' })}`) + sub('面積 = ?'), w * h, [2 * (w + h), w + h, w * h + w], ask); }
-   if (k === 1) { const b = R(2, 6) * 2, h = R(3, 8); return mkN(pic('-10 -10 300 200', `<path d="M20 150 L250 150 L90 20 Z" fill="${DM}"/><path d="M90 20 V150" stroke-dasharray="8 8" stroke-width="3"/>${lab(135, 178, b)}${lab(102, 92, h, { a: 'start' })}`) + sub('面積 = ?'), b * h / 2, [b * h, b + h, b * h / 2 + b], ask); }
-   if (k === 2) { const a = R(2, 5), b = a + R(2, 5), h = R(1, 4) * 2; return mkN(pic('-10 -20 300 220', `<path d="M20 150 L270 150 L200 30 L80 30 Z" fill="${DM}"/><path d="M80 30 V150" stroke-dasharray="8 8" stroke-width="3"/>${lab(140, 6, a)}${lab(145, 178, b)}${lab(92, 96, h, { a: 'start' })}`) + sub('面積 = ?'), (a + b) * h / 2, [(a + b) * h, a * b * h / 2, a * h + b], ask); }
+   if (k === 0) { const w = R(3, 9), h = R(2, 6); return mkN(pic('-10 -10 330 200', `<rect x="20" y="20" width="230" height="130" fill="${DM}"/>${lab(135, 176, w)}${lab(265, 85, h, { a: 'start' })}`) + sub('長方形面積 = ?'), w * h, [2 * (w + h), w + h, w * h + w], ask); }
+   if (k === 1) { const b = R(2, 6) * 2, h = R(3, 8); return mkN(pic('-10 -10 300 200', `<path d="M20 150 L250 150 L90 20 Z" fill="${DM}"/><path d="M90 20 V150" stroke-dasharray="8 8" stroke-width="3"/>${lab(135, 178, b)}${lab(102, 92, h, { a: 'start' })}`) + sub('三角形面積 = ?（虛線是高）'), b * h / 2, [b * h, b + h, b * h / 2 + b], ask); }
+   if (k === 2) { const a = R(2, 5), b = a + R(2, 5), h = R(1, 4) * 2; return mkN(pic('-10 -20 300 220', `<path d="M20 150 L270 150 L200 30 L80 30 Z" fill="${DM}"/><path d="M80 30 V150" stroke-dasharray="8 8" stroke-width="3"/>${lab(140, 6, a)}${lab(145, 178, b)}${lab(92, 96, h, { a: 'start' })}`) + sub('梯形面積 = ?（虛線是高）'), (a + b) * h / 2, [(a + b) * h, a * b * h / 2, a * h + b], ask); }
    if (k === 3) { const a = R(6, 10), b = R(2, a - 3), w = 180 * b / a, o = 20 + (180 - w) / 2;
-     return mkN(pic('-10 -10 240 240', `<rect x="20" y="20" width="180" height="180" fill="${DM}"/><rect x="${o}" y="${o}" width="${w}" height="${w}" fill="${BD}"/>${lab(110, 218, a)}${lab(110, 110, b, { s: 28 })}`) + sub('灰色面積 = ?'), a * a - b * b, [(a - b) ** 2, a * a + b * b, 4 * (a - b)], { ask: '中間挖掉一塊…' }); }
+     return mkN(pic('-10 -10 240 240', `<rect x="20" y="20" width="180" height="180" fill="${DM}"/><rect x="${o}" y="${o}" width="${w}" height="${w}" fill="${BD}"/>${lab(110, 218, a)}${lab(110, 110, b, { s: 28 })}`) + sub('大正方形挖掉中間小正方形<br>灰色面積 = ?'), a * a - b * b, [(a - b) ** 2, a * a + b * b, 4 * (a - b)], { ask: '中間挖掉一塊…' }); }
    const a = R(1, 3), b = a + R(1, 3), u = 200 / (a + b), A = a * u;
-   return mkN(pic('-30 -40 260 270', `<rect x="0" y="0" width="200" height="200"/><path d="M${A} 0 L200 ${A} L${200 - A} 200 L0 ${200 - A} Z" fill="${DM}"/>${lab(A / 2, -20, a, { s: 28 })}${lab(A + (200 - A) / 2, -20, b, { s: 28 })}`) + sub('斜的正方形 = ?'), a * a + b * b, [(a + b) ** 2, 2 * a * b, a * b], { ask: '中間斜斜的那塊多大？' });
+   return mkN(pic('-30 -40 260 270', `<rect x="0" y="0" width="200" height="200"/><path d="M${A} 0 L200 ${A} L${200 - A} 200 L0 ${200 - A} Z" fill="${DM}"/>${lab(A / 2, -20, a, { s: 28 })}${lab(A + (200 - A) / 2, -20, b, { s: 28 })}`) + sub('中間斜放的正方形，面積 = ?'), a * a + b * b, [(a + b) ** 2, 2 * a * b, a * b], { ask: '中間斜斜的那塊多大？' });
  }},
  { id: 'ang', s: 1, t: '角度', g: k => {
-   if (k === 0) { const A = R(8, 16) * 5, B = R(6, 14) * 5; return mkN(pic('0 0 300 180', `<path d="M20 160 L280 160 L110 20 Z"/>${lab(62, 140, A + '°', { s: 28 })}${lab(236, 140, B + '°', { s: 28 })}${lab(112, 62, '?', { s: 30 })}`), 180 - A - B, [360 - A - B, 90 - Math.abs(A - B), A + B], { ask: '最上面那個角幾度？' }); }
-   if (k === 1) { const x = R(6, 16) * 5, r = x * Math.PI / 180; return mkN(pic('0 0 300 170', `<line x1="10" y1="150" x2="290" y2="150"/><line x1="150" y1="150" x2="${150 + 130 * Math.cos(r)}" y2="${150 - 130 * Math.sin(r)}"/>${lab(215, 125, x + '°', { s: 26 })}${lab(100, 120, '?', { s: 30 })}`), 180 - x, [90 - x, 360 - x, x], { ask: '另一邊幾度？' }); }
-   if (k === 2) { const h = pick([1, 2, 3, 4, 5]); return mkN(clock(h, 0) + sub('兩根針夾幾度？'), 30 * h, [30 * h + 30, 30 * h - 15, 12 * h], { ask: `現在 ${h} 點整…` }); }
+   if (k === 0) { const A = R(8, 16) * 5, B = R(6, 14) * 5; return mkN(pic('0 0 300 180', `<path d="M20 160 L280 160 L110 20 Z"/>${lab(62, 140, A + '°', { s: 28 })}${lab(236, 140, B + '°', { s: 28 })}${lab(112, 62, '?', { s: 30 })}`) + sub('三角形最上面的角 ? 是幾度？'), 180 - A - B, [360 - A - B, 90 - Math.abs(A - B), A + B], { ask: '最上面那個角幾度？' }); }
+   if (k === 1) { const x = R(6, 16) * 5, r = x * Math.PI / 180; return mkN(pic('0 0 300 170', `<line x1="10" y1="150" x2="290" y2="150"/><line x1="150" y1="150" x2="${150 + 130 * Math.cos(r)}" y2="${150 - 130 * Math.sin(r)}"/>${lab(215, 125, x + '°', { s: 26 })}${lab(100, 120, '?', { s: 30 })}`) + sub('底下是一條直線，? 是幾度？'), 180 - x, [90 - x, 360 - x, x], { ask: '另一邊幾度？' }); }
+   if (k === 2) { const h = pick([1, 2, 3, 4, 5]); return mkN(clock(h, 0) + sub('時針和分針夾幾度？'), 30 * h, [30 * h + 30, 30 * h - 15, 12 * h], { ask: `現在 ${h} 點整…` }); }
    if (k === 3) { const n = R(5, 8), pts = [...Array(n)].map((_, i) => { const a = -Math.PI / 2 + i * 2 * Math.PI / n; return (100 + 85 * Math.cos(a)).toFixed(1) + ',' + (100 + 85 * Math.sin(a)).toFixed(1); }).join(' ');
-     return mkN(pic('0 0 200 200', `<polygon points="${pts}" fill="${DM}"/>`) + sub(`${n} 個內角加起來？`), (n - 2) * 180, [n * 180, (n - 1) * 180, 360], { ask: `這是 ${n} 邊形！` }); }
+     return mkN(pic('0 0 200 200', `<polygon points="${pts}" fill="${DM}"/>`) + sub(`${n} 邊形的內角加起來幾度？`), (n - 2) * 180, [n * 180, (n - 1) * 180, 360], { ask: `這是 ${n} 邊形！` }); }
    const h = pick([1, 2, 4, 8, 9, 10]); let a = Math.abs(30 * h - 165); if (a > 180) a = 360 - a;
    let wrong = Math.abs(30 * h - 180); if (wrong > 180) wrong = 360 - wrong;
-   return mkN(clock(h, 30) + sub('兩根針夾幾度？'), a, [wrong, a + 30, a - 30 > 0 ? a - 30 : a + 45], { ask: `${h} 點半，有陷阱喔！` });
+   return mkN(clock(h, 30) + sub('時針和分針夾幾度？'), a, [wrong, a + 30, a - 30 > 0 ? a - 30 : a + 45], { ask: `${h} 點半，有陷阱喔！` });
  }},
  { id: 'speed', s: 1, t: '速度', g: k => {
-   if (k === 0) { const v = R(4, 9) * 10, t = R(2, 5); return mkN(emo('🚗') + sub(`時速 ${v} 公里<br>開 ${t} 小時`), v * t, [v + t, v * (t + 1), v * t / 2], { ask: '開了幾公里？' }); }
-   if (k === 1) { const v = R(3, 6), t = R(2, 5); return mkN(emo('🚶') + sub(`走 ${v * t} 公里<br>花 ${t} 小時`), v, [v * t * t, v + t, v + 1], { ask: '一小時走幾公里？' }); }
-   if (k === 2) { const v = pick([100, 150, 200, 250]), t = R(2, 4); return mkN(emo('🚄') + sub(`${v * t} 公里<br>時速 ${v}`), t, [t + 1, t * 2, t + 2], { ask: '要坐幾小時？' }); }
-   if (k === 3) { const a = R(3, 6), b = R(4, 8), t = R(2, 4); return mkN(emo('🚶→　←🏃') + sub(`相距 ${(a + b) * t} 公里<br>時速 ${a} 和 ${b}`), t, [t + 1, t * 2, t + 2], { ask: '幾小時會碰到？' }); }
+   if (k === 0) { const v = R(4, 9) * 10, t = R(2, 5); return mkN(emo('🚗') + sub(`時速 ${v} 公里，開了 ${t} 小時<br>一共開幾公里？`), v * t, [v + t, v * (t + 1), v * t / 2], { ask: '開了幾公里？' }); }
+   if (k === 1) { const v = R(3, 6), t = R(2, 5); return mkN(emo('🚶') + sub(`走了 ${v * t} 公里，花 ${t} 小時<br>時速幾公里？`), v, [v * t * t, v + t, v + 1], { ask: '一小時走幾公里？' }); }
+   if (k === 2) { const v = pick([100, 150, 200, 250]), t = R(2, 4); return mkN(emo('🚄') + sub(`距離 ${v * t} 公里，時速 ${v} 公里<br>要坐幾小時？`), t, [t + 1, t * 2, t + 2], { ask: '要坐幾小時？' }); }
+   if (k === 3) { const a = R(3, 6), b = R(4, 8), t = R(2, 4); return mkN(emo('🚶→　←🏃') + sub(`兩人相距 ${(a + b) * t} 公里，面對面走<br>時速 ${a} 和 ${b}，幾小時碰面？`), t, [t + 1, t * 2, t + 2], { ask: '幾小時會碰到？' }); }
    const [a, b, c] = pick([[60, 40, 48], [60, 30, 40], [30, 20, 24], [120, 80, 96]]);
-   return mkN(emo('🚗 ⇄') + sub(`去程時速 ${a}<br>回程時速 ${b}`), c, [(a + b) / 2, a - b, (a + b) / 2 + 5], { ask: '平均時速？有陷阱喔！' });
+   return mkN(emo('🚗 ⇄') + sub(`同一條路，去程時速 ${a}、回程時速 ${b}<br>來回的平均時速是多少？`), c, [(a + b) / 2, a - b, (a + b) / 2 + 5], { ask: '平均時速？有陷阱喔！' });
  }},
  { id: 'circ', s: 2, t: '圓', g: k => {
-   if (k === 0) { const r = R(2, 9); return mk(pic('0 0 200 200', `<circle cx="100" cy="100" r="85" fill="${DM}"/><line x1="100" y1="100" x2="185" y2="100"/><circle cx="100" cy="100" r="5" fill="${CH}"/>${lab(142, 80, r)}`) + sub('面積 = ?'), pis(r * r), [pis(2 * r), pis(r), pis(4 * r * r)], { fill: () => pis(R(1, 30)), ask: '這個圓多大？' }); }
-   if (k === 1) { const d = R(3, 12); return mk(pic('0 0 200 200', `<circle cx="100" cy="100" r="85"/><line x1="15" y1="100" x2="185" y2="100"/>${lab(100, 78, d)}`) + sub('一圈多長？'), pis(d), [pis(2 * d), pis(d * d), String(d * 3)], { ask: '繞一圈要走多遠？' }); }
-   if (k === 2) { const r = pick([2, 4, 6]); return mk(pic('0 -10 200 120', `<path d="M15 100 A85 85 0 0 1 185 100 Z" fill="${DM}"/><line x1="100" y1="100" x2="185" y2="100"/>${lab(142, 82, r)}`) + sub('半圓面積 = ?'), pis(r * r / 2), [pis(r * r), pis(r), pis(r * r / 4)], { fill: () => pis(R(1, 30)), ask: '半個圓呢？' }); }
-   if (k === 3) { const r = pick([2, 4, 6]); return mk(pic('0 0 200 200', `<path d="M20 180 L20 20 A160 160 0 0 1 180 180 Z" fill="${DM}"/>${lab(100, 200, r, { s: 30 })}`) + sub('扇形面積 = ?'), pis(r * r / 4), [pis(r * r / 2), pis(r * r), pis(r)], { fill: () => pis(R(1, 30)), ask: '四分之一個圓！' }); }
-   const r = R(1, 3); return mk(pic('0 0 220 230', `<rect x="10" y="10" width="200" height="200" fill="${DM}"/><circle cx="110" cy="110" r="100" fill="${BD}"/>${lab(110, 226, 2 * r, { s: 28 })}`) + sub('四個角的面積 = ?'), `${4 * r * r} − ${pis(r * r)}`, [`${4 * r * r} − ${pis(2 * r * r)}`, pis(r * r), `${pis(4 * r * r)} − ${4 * r * r}`], { ask: '四個角加起來多大？' });
+   if (k === 0) { const r = R(2, 9); return mk(pic('0 0 200 200', `<circle cx="100" cy="100" r="85" fill="${DM}"/><line x1="100" y1="100" x2="185" y2="100"/><circle cx="100" cy="100" r="5" fill="${CH}"/>${lab(142, 80, r)}`) + sub(`半徑 ${r}，圓面積 = ?`), pis(r * r), [pis(2 * r), pis(r), pis(4 * r * r)], { fill: () => pis(R(1, 30)), ask: '這個圓多大？' }); }
+   if (k === 1) { const d = R(3, 12); return mk(pic('0 0 200 200', `<circle cx="100" cy="100" r="85"/><line x1="15" y1="100" x2="185" y2="100"/>${lab(100, 78, d)}`) + sub(`直徑 ${d}，圓周長（一圈）= ?`), pis(d), [pis(2 * d), pis(d * d), String(d * 3)], { ask: '繞一圈要走多遠？' }); }
+   if (k === 2) { const r = pick([2, 4, 6]); return mk(pic('0 -10 200 120', `<path d="M15 100 A85 85 0 0 1 185 100 Z" fill="${DM}"/><line x1="100" y1="100" x2="185" y2="100"/>${lab(142, 82, r)}`) + sub(`半徑 ${r} 的半圓，面積 = ?`), pis(r * r / 2), [pis(r * r), pis(r), pis(r * r / 4)], { fill: () => pis(R(1, 30)), ask: '半個圓呢？' }); }
+   if (k === 3) { const r = pick([2, 4, 6]); return mk(pic('0 0 200 200', `<path d="M20 180 L20 20 A160 160 0 0 1 180 180 Z" fill="${DM}"/>${lab(100, 200, r, { s: 30 })}`) + sub(`四分之一圓，半徑 ${r}<br>面積 = ?`), pis(r * r / 4), [pis(r * r / 2), pis(r * r), pis(r)], { fill: () => pis(R(1, 30)), ask: '四分之一個圓！' }); }
+   const r = R(1, 3); return mk(pic('0 0 220 230', `<rect x="10" y="10" width="200" height="200" fill="${DM}"/><circle cx="110" cy="110" r="100" fill="${BD}"/>${lab(110, 226, 2 * r, { s: 28 })}`) + sub(`正方形邊長 ${2 * r}，裡面放一個圓<br>四個角（灰色）面積 = ?`), `${4 * r * r} − ${pis(r * r)}`, [`${4 * r * r} − ${pis(2 * r * r)}`, pis(r * r), `${pis(4 * r * r)} − ${4 * r * r}`], { ask: '四個角加起來多大？' });
  }},
  { id: 'old1', s: 2, t: '古代趣題', g: k => {
-   if (k === 0) { const r = R(3, 10), c = R(4, 15); return mkN(emo('🐔🐰') + sub(`共 ${r + c} 個頭<br>${2 * c + 4 * r} 隻腳`), r, [c, r + 1, Math.round((2 * c + 4 * r) / 4)], { ask: '兔子有幾隻？' }); }
-   if (k === 1) { const g = pick([5, 10, 20]), L = g * R(4, 10); return mkN(emo('🌳 · · · 🌳') + sub(`路長 ${L} 公尺<br>每 ${g} 公尺一棵，兩頭都種`), L / g + 1, [L / g, L / g - 1, L / g + 2], { ask: '總共種幾棵樹？' }); }
+   if (k === 0) { const r = R(3, 10), c = R(4, 15); return mkN(emo('🐔🐰') + sub(`雞和兔共 ${r + c} 個頭、${2 * c + 4 * r} 隻腳<br>兔子有幾隻？`), r, [c, r + 1, Math.round((2 * c + 4 * r) / 4)], { ask: '兔子有幾隻？' }); }
+   if (k === 1) { const g = pick([5, 10, 20]), L = g * R(4, 10); return mkN(emo('🌳 · · · 🌳') + sub(`路長 ${L} 公尺，每 ${g} 公尺種一棵<br>頭尾都要種，一共幾棵？`), L / g + 1, [L / g, L / g - 1, L / g + 2], { ask: '總共種幾棵樹？' }); }
    if (k === 2) { let a, m, t, g, n = 0; do { a = R(4, 10); m = pick([3, 4, 5]); t = R(2, 12); g = m * (a + t) - t; } while ((g < 55 || g > 85) && n++ < 200);
      return mkN(emo('👴 👦') + sub(`${T()} ${g} 歲，我 ${a} 歲`) + sub(`幾年後${T()}是我的 ${m} 倍？`), t, [t + 2, t - 1 > 0 ? t - 1 : t + 3, Math.round(g / m) - a], { ask: '這題跟我們有關！' }); }
-   if (k === 3) return mkN(emo('🐔🐰') + sub('上有 35 頭<br>下有 94 足'), 12, [23, 11, 13], { ask: '1600 年前的考題！兔幾隻？' });
-   return mk(emo('🏮🌸🍶') + sub('遇店酒加倍、見花喝一斗<br>店花各三次，酒喝光'), fr(7, 8) + ' 斗', ['1 斗', fr(1, 2) + ' 斗', fr(3, 4) + ' 斗'], { ask: '李白壺裡原本有多少酒？' });
+   if (k === 3) return mkN(emo('🐔🐰') + sub('雞兔同籠：上有 35 頭、下有 94 足<br>兔子有幾隻？'), 12, [23, 11, 13], { ask: '1600 年前的考題！兔幾隻？' });
+   return mk(emo('🏮🌸🍶') + sub('李白：遇到酒店，酒加一倍；看到花，喝一斗<br>店和花各遇到 3 次，酒剛好喝光<br>壺裡原本有多少酒？'), fr(7, 8) + ' 斗', ['1 斗', fr(1, 2) + ' 斗', fr(3, 4) + ' 斗'], { ask: '李白壺裡原本有多少酒？' });
  }},
  { id: 'money', s: 3, t: '存錢', g: k => {
-   if (k === 0) { const P = pick([10000, 50000, 100000]), r = R(1, 4); return mkN(emo('🏦') + sub(`存 ${P} 元<br>年利率 ${r}%`), P * r / 100, [P * r / 10, r * 100, P * r / 1000], { ask: '一年有多少利息？' }); }
-   if (k === 1) { const a = pick([9, 8, 7]), b = pick([9, 8]); return mk(emo('🏷️') + sub(`先打 ${a} 折<br>再打 ${b} 折`), `${a * b}%`, [`${(a + b - 10) * 10}%`, `${Math.min(a, b) * 10}%`, `${a * b + 10}%`], { ask: '剩原價的幾 %？' }); }
-   if (k === 2) { const p = pick([10, 20, 50]); return mk(emo('📈📉') + sub(`先漲 ${p}%<br>再跌 ${p}%`), `${M}${p * p / 100}%`, ['0%', `+${p * p / 100}%`, `${M}${p}%`], { ask: '最後是賺還是賠？' }); }
-   if (k === 3) { const r = pick([10, 20]); return mk(emo('🏦') + sub(`存 100 萬，年利率 ${r}%<br>利滾利 2 年`), `${(100 + r) ** 2 / 100} 萬`, [`${100 + 2 * r} 萬`, `${100 + r} 萬`, '200 萬'], { ask: '兩年後有多少？' }); }
-   const [r, y] = pick([[6, 12], [8, 9], [12, 6]]); return mk(emo('💰×2') + sub(`年利率 ${r}%，利滾利`), `約 ${y} 年`, [`約 ${y * 2} 年`, `約 ${Math.round(100 / r)} 年`, `約 ${y + 4} 年`, `約 ${y - 3} 年`], { ask: '大概幾年錢會翻倍？' });
+   if (k === 0) { const P = pick([10000, 50000, 100000]), r = R(1, 4); return mkN(emo('🏦') + sub(`存 ${P} 元，年利率 ${r}%<br>一年的利息幾元？`), P * r / 100, [P * r / 10, r * 100, P * r / 1000], { ask: '一年有多少利息？' }); }
+   if (k === 1) { const a = pick([9, 8, 7]), b = pick([9, 8]); return mk(emo('🏷️') + sub(`先打 ${a} 折，再打 ${b} 折<br>變成原價的幾 %？`), `${a * b}%`, [`${(a + b - 10) * 10}%`, `${Math.min(a, b) * 10}%`, `${a * b + 10}%`], { ask: '剩原價的幾 %？' }); }
+   if (k === 2) { const p = pick([10, 20, 50]); return mk(emo('📈📉') + sub(`股票先漲 ${p}%，再跌 ${p}%<br>跟原本比，漲跌多少？`), `${M}${p * p / 100}%`, ['0%', `+${p * p / 100}%`, `${M}${p}%`], { ask: '最後是賺還是賠？' }); }
+   if (k === 3) { const r = pick([10, 20]); return mk(emo('🏦') + sub(`存 100 萬，年利率 ${r}%，利滾利<br>2 年後變多少？`), `${(100 + r) ** 2 / 100} 萬`, [`${100 + 2 * r} 萬`, `${100 + r} 萬`, '200 萬'], { ask: '兩年後有多少？' }); }
+   const [r, y] = pick([[6, 12], [8, 9], [12, 6]]); return mk(emo('💰×2') + sub(`年利率 ${r}%，利滾利<br>大約幾年錢會變 2 倍？`), `約 ${y} 年`, [`約 ${y * 2} 年`, `約 ${Math.round(100 / r)} 年`, `約 ${y + 4} 年`, `約 ${y - 3} 年`], { ask: '大概幾年錢會翻倍？' });
  }},
  { id: 'pat', s: 3, t: '找規律', g: k => {
    if (k === 0) { const a = R(1, 3), r = pick([2, 3]); return mkN([0, 1, 2, 3].map(i => a * r ** i).join(', ') + ', ?', a * r ** 4, [a * r ** 3 * 2 - a * r ** 2, a * r ** 4 + a, a * r ** 3 + a * r ** 2], { ask: '下一個是什麼？' }); }
    if (k === 1) { const m = R(1, 2); let s = '', x = 10;
      for (let f = 0; f < 3; f++) { const n = m + f; for (let row = 0; row < n; row++) for (let c = 0; c <= row; c++) s += `<circle cx="${x + (n - 1 - row) * 9 + c * 18}" cy="${30 + row * 18}" r="6" fill="${CH}" stroke="none"/>`; x += n * 18 + 24; }
      s += lab(x + 18, 60, '?', { s: 46 });
-     return mkN(pic(`0 0 ${x + 46} ${40 + (m + 2) * 18}`, s), tnum(m + 3), [tnum(m + 3) + 1, tnum(m + 2) * 2, tnum(m + 3) - 1], { ask: '下一個有幾顆？' }); }
+     return mkN(pic(`0 0 ${x + 46} ${40 + (m + 2) * 18}`, s) + sub('照規律，下一個圖有幾顆點？'), tnum(m + 3), [tnum(m + 3) + 1, tnum(m + 2) * 2, tnum(m + 3) - 1], { ask: '下一個有幾顆？' }); }
    if (k === 2) return pick([() => mkN('1, 1, 2, 3, 5, 8, ?', 13, [11, 16, 12], { ask: '兔子生兔子的數列！' }), () => mkN('1, 4, 9, 16, ?', 25, [23, 20, 32], { ask: '下一個是什麼？' })])();
    if (k === 3) return pick([() => mkN('1, 3, 7, 15, ?', 31, [23, 30, 29]), () => mkN('2, 6, 12, 20, ?', 30, [28, 32, 26])])();
    return mk('1, 11, 21, 1211, 111221, ?', '312211', ['1112221', '122111', '311221'], { ask: '這規律好奇怪…' });
  }},
  { id: 'coord', s: 4, t: '座標', g: k => {
-   if (k === 0) { let a, b; do { a = R(1, 6); b = R(1, 6); } while (a === b); return mk(grid(dotP(a, b, 'P')), `(${a}, ${b})`, [`(${b}, ${a})`, `(${a}, ${b + 1 > 6 ? b - 1 : b + 1})`, `(${a - 1}, ${b})`], { ask: 'P 點在哪裡？' }); }
-   if (k === 1) { const [dx, dy] = pick([[3, 4], [4, 3]]), x = R(0, 6 - dx), y = R(0, 6 - dy); return mkN(grid(segG([x, y], [x + dx, y + dy]) + dotP(x, y, 'A') + dotP(x + dx, y + dy, 'B')), 5, [7, 6, 4], { ask: 'A 到 B 多遠？' }); }
-   if (k === 2) { const dx = R(1, 4), dy = R(1, 4) * sgn(), x = R(0, 6 - dx), y = dy > 0 ? R(0, 6 - dy) : R(-dy, 6); return mk(grid(segG([x, y], [x + dx, y + dy]) + dotP(x, y) + dotP(x + dx, y + dy)) + sub('斜率 = ?'), F(dy, dx), [F(dx, dy), F(-dy, dx), N(dy)], { fill: () => F(R(1, 5) * sgn(), R(1, 5)), ask: '這條線多斜？' }); }
+   if (k === 0) { let a, b; do { a = R(1, 6); b = R(1, 6); } while (a === b); return mk(grid(dotP(a, b, 'P')) + sub('P 點的座標是？'), `(${a}, ${b})`, [`(${b}, ${a})`, `(${a}, ${b + 1 > 6 ? b - 1 : b + 1})`, `(${a - 1}, ${b})`], { ask: 'P 點在哪裡？' }); }
+   if (k === 1) { const [dx, dy] = pick([[3, 4], [4, 3]]), x = R(0, 6 - dx), y = R(0, 6 - dy); return mkN(grid(segG([x, y], [x + dx, y + dy]) + dotP(x, y, 'A') + dotP(x + dx, y + dy, 'B')) + sub('A 到 B 的距離 = ?'), 5, [7, 6, 4], { ask: 'A 到 B 多遠？' }); }
+   if (k === 2) { const dx = R(1, 4), dy = R(1, 4) * sgn(), x = R(0, 6 - dx), y = dy > 0 ? R(0, 6 - dy) : R(-dy, 6); return mk(grid(segG([x, y], [x + dx, y + dy]) + dotP(x, y) + dotP(x + dx, y + dy)) + sub('這條線的斜率 = ?'), F(dy, dx), [F(dx, dy), F(-dy, dx), N(dy)], { fill: () => F(R(1, 5) * sgn(), R(1, 5)), ask: '這條線多斜？' }); }
    if (k === 3) { let a, b, c, d; do { a = R(0, 6); b = R(0, 6); c = R(0, 6); d = R(0, 6); } while ((a + c) % 2 || (b + d) % 2 || (a === c && b === d)); const mx = (a + c) / 2, my = (b + d) / 2;
-     return mk(grid(segG([a, b], [c, d]) + dotP(a, b, 'A') + dotP(c, d, 'B')) + sub('中點 = ?'), `(${mx}, ${my})`, [`(${my}, ${mx})`, `(${a + c}, ${b + d})`, `(${mx + 1}, ${my})`], { fill: () => `(${R(0, 6)}, ${R(0, 6)})`, ask: '正中間在哪？' }); }
+     return mk(grid(segG([a, b], [c, d]) + dotP(a, b, 'A') + dotP(c, d, 'B')) + sub('A 和 B 正中間的座標 = ?'), `(${mx}, ${my})`, [`(${my}, ${mx})`, `(${a + c}, ${b + d})`, `(${mx + 1}, ${my})`], { fill: () => `(${R(0, 6)}, ${R(0, 6)})`, ask: '正中間在哪？' }); }
    let x1, x2, y1, x3, y3; do { x1 = R(0, 3); x2 = R(x1 + 2, 6); y1 = R(0, 3); x3 = R(0, 6); y3 = R(y1 + 2, 6); } while (((x2 - x1) * (y3 - y1)) % 2);
    const area = (x2 - x1) * (y3 - y1) / 2;
-   return mkN(grid(`<path d="M${G(x1, y1)} L${G(x2, y1)} L${G(x3, y3)} Z" fill="${DM}"/>`) + sub('面積 = ?'), area, [area * 2, area + 1, (x2 - x1) + (y3 - y1)], { ask: '三角形多大？' });
+   return mkN(grid(`<path d="M${G(x1, y1)} L${G(x2, y1)} L${G(x3, y3)} Z" fill="${DM}"/>`) + sub('三角形面積 = ?'), area, [area * 2, area + 1, (x2 - x1) + (y3 - y1)], { ask: '三角形多大？' });
  }},
  { id: 'old2', s: 4, t: '經典難題', g: k => {
    if (k === 0) { const n = R(3, 4); let s = ''; for (const px of [60, 160, 260]) s += `<line x1="${px}" y1="30" x2="${px}" y2="150" stroke-width="6"/>`; s += `<line x1="10" y1="152" x2="310" y2="152" stroke-width="6"/>`;
      for (let i = 0; i < n; i++) { const w = 90 - i * 18; s += `<rect x="${60 - w / 2}" y="${130 - i * 22}" width="${w}" height="18" rx="6" fill="${[YL, '#ee7b30', '#8fd0ff', '#ff8fb0'][i]}" stroke="none"/>`; }
-     return mkN(pic('0 10 320 160', s) + sub('全搬到右邊，最少幾步？'), 2 ** n - 1, [2 ** n, 2 * n, 2 ** n + 1], { ask: '大的不能壓小的喔！' }); }
-   if (k === 1) return mkN(emo('💂💂💂') + sub('3 個一數剩 2<br>5 個一數剩 3、7 個一數剩 2'), 23, [53, 38, 128], { ask: '韓信的兵最少幾人？' });
-   if (k === 2) { const c = R(3, 5), cols = ['🔴', '🔵', '⚪', '🟢', '🟡'].slice(0, c).join(''); return mkN(emo('🧦 ' + cols) + sub(`${c} 種顏色，閉眼拿`), c + 1, [c, 2 * c, c + 2], { ask: '最少拿幾隻一定有一雙？' }); }
+     return mkN(pic('0 10 320 160', s) + sub('河內塔：一次搬一片，大的不能壓小的<br>全部搬到最右邊，最少幾步？'), 2 ** n - 1, [2 ** n, 2 * n, 2 ** n + 1], { ask: '大的不能壓小的喔！' }); }
+   if (k === 1) return mkN(emo('💂💂💂') + sub('士兵 3 個一數剩 2、5 個一數剩 3<br>7 個一數剩 2，最少有幾人？'), 23, [53, 38, 128], { ask: '韓信的兵最少幾人？' });
+   if (k === 2) { const c = R(3, 5), cols = ['🔴', '🔵', '⚪', '🟢', '🟡'].slice(0, c).join(''); return mkN(emo('🧦 ' + cols) + sub(`抽屜裡有 ${c} 種顏色的襪子，閉眼拿<br>最少拿幾隻，一定有 2 隻同色？`), c + 1, [c, 2 * c, c + 2], { ask: '最少拿幾隻一定有一雙？' }); }
    if (k === 3) { const P = { A: [150, 25], B: [150, 235], C: [70, 130], D: [255, 130] };
      const arc = (p, q, bend) => { const [a, b] = P[p], [c, d] = P[q]; const mx = (a + c) / 2 + bend * (d - b) / 4, my = (b + d) / 2 - bend * (c - a) / 4; return `<path d="M${a} ${b} Q${mx} ${my} ${c} ${d}"/>`; };
      let s = arc('C', 'A', .9) + arc('C', 'A', -.9) + arc('C', 'B', .9) + arc('C', 'B', -.9) + arc('A', 'D', 0) + arc('B', 'D', 0) + arc('C', 'D', 0);
      for (const p in P) s += `<circle cx="${P[p][0]}" cy="${P[p][1]}" r="14" fill="${YL}" stroke="none"/>`;
-     return mk(pic('40 0 240 260', s) + sub('7 座橋，每座只走一次'), '走不完', ['可以走完', '只有 1 種走法', '有 7 種走法'], { ask: '能一次走完嗎？' }); }
-   return mk(emo('♟️🍚') + sub('棋盤 64 格，第 1 格 1 粒米<br>每格加倍，總共？'), sup(2, 64) + ' − 1', [sup(2, 64), sup(64, 2), '64 × 2'], { ask: '國王賞多少米？' });
+     return mk(pic('40 0 240 260', s) + sub('7 座橋（線）連接 4 塊陸地（點）<br>每座橋剛好走一次，走得完嗎？'), '走不完', ['可以走完', '只有 1 種走法', '有 7 種走法'], { ask: '能一次走完嗎？' }); }
+   return mk(emo('♟️🍚') + sub('棋盤 64 格，第 1 格放 1 粒米<br>每一格都是前一格的 2 倍，總共幾粒？'), sup(2, 64) + ' − 1', [sup(2, 64), sup(64, 2), '64 × 2'], { ask: '國王賞多少米？' });
  }},
  { id: 'stat', s: 5, t: '統計', g: k => {
    if (k === 0) { let v; do { v = [R(2, 9), R(2, 9), R(2, 9), R(2, 9)]; } while (v.reduce((a, b) => a + b) % 4); const m = v.reduce((a, b) => a + b) / 4;
      let s = `<line x1="10" y1="200" x2="290" y2="200"/>`; v.forEach((h, i) => { const x = 25 + i * 68, H = h * 18; s += `<rect x="${x}" y="${200 - H}" width="44" height="${H}" fill="${DM}"/>${lab(x + 22, 200 - H - 18, h, { s: 28 })}`; });
-     return mkN(pic('0 0 300 215', s), m, [m + 1, m - 1, Math.max(...v)], { ask: '平均是多少？' }); }
-   if (k === 1) { let v; do { v = [0, 0, 0, 0].map(() => R(12, 20) * 5); } while (v.reduce((a, b) => a + b) % 4); const m = v.reduce((a, b) => a + b) / 4; return mkN(emo('📝') + sub(v.join('、') + ' 分'), m, [m + 5, m - 5, Math.max(...v)], { ask: '我平均考幾分？' }); }
+     return mkN(pic('0 0 300 215', s) + sub('4 根柱子的平均 = ?'), m, [m + 1, m - 1, Math.max(...v)], { ask: '平均是多少？' }); }
+   if (k === 1) { let v; do { v = [0, 0, 0, 0].map(() => R(12, 20) * 5); } while (v.reduce((a, b) => a + b) % 4); const m = v.reduce((a, b) => a + b) / 4; return mkN(emo('📝') + sub(`考試 ${v.join('、')} 分<br>平均幾分？`), m, [m + 5, m - 5, Math.max(...v)], { ask: '我平均考幾分？' }); }
    if (k === 2) { let v; do { v = shuffle([R(1, 4), R(5, 7), R(8, 9), R(10, 14), R(15, 30)]); } while (v[2] === [...v].sort((a, b) => a - b)[2] || v.reduce((a, b) => a + b) % 5 === 0 && v.reduce((a, b) => a + b) / 5 === [...v].sort((a, b) => a - b)[2]); const md = [...v].sort((a, b) => a - b)[2];
-     return mkN(v.join(', ') + sub('中位數 = ?'), md, [v[2], Math.round(v.reduce((a, b) => a + b) / 5), Math.max(...v)], { ask: '中位數是正中間那個嗎？' }); }
-   if (k === 3) { let a, b, c, t, x; do { a = R(70, 95); b = R(70, 95); c = R(70, 95); t = pick([85, 88, 90]); x = 4 * t - a - b - c; } while (x < 70 || x > 100); return mkN(emo('📝') + sub(`前三次 ${a}、${b}、${c}<br>想平均 ${t} 分`), x, [t, x - 4, x + 4], { ask: '第 4 次要考幾分？' }); }
-   return mk('2, 4, 4, 4, 5, 5, 7, 9' + sub('標準差 = ?'), '2', ['4', '5', sq(2)], { ask: '老師最愛考的標準差！' });
+     return mkN(v.join(', ') + sub('這 5 個數的中位數 = ?'), md, [v[2], Math.round(v.reduce((a, b) => a + b) / 5), Math.max(...v)], { ask: '中位數是正中間那個嗎？' }); }
+   if (k === 3) { let a, b, c, t, x; do { a = R(70, 95); b = R(70, 95); c = R(70, 95); t = pick([85, 88, 90]); x = 4 * t - a - b - c; } while (x < 70 || x > 100); return mkN(emo('📝') + sub(`前三次考 ${a}、${b}、${c} 分<br>想要平均 ${t} 分，第 4 次要考幾分？`), x, [t, x - 4, x + 4], { ask: '第 4 次要考幾分？' }); }
+   return mk('2, 4, 4, 4, 5, 5, 7, 9' + sub('這 8 個數的標準差 = ?'), '2', ['4', '5', sq(2)], { ask: '老師最愛考的標準差！' });
  }},
  { id: 'prob2', s: 5, t: '機率難題', g: k => {
-   if (k === 0) { const n = R(4, 6); return mk(emo('🎟️'.repeat(n)) + sub(`${n} 支籤 1 支中<br>第 2 個抽`), F(1, n), [F(1, n - 1), F(1, 2), F(2, n), F(1, n + 1)], { ask: '先抽比較好嗎？' }); }
-   if (k === 1) return mk(emo('🎲🎲') + sub('至少一個 6？'), F(11, 36), [F(1, 3), F(1, 6), F(1, 36)], { ask: '機會有多大？' });
-   if (k === 2) return mk(emo('🚪🚪🚪') + sub('我選 1 號，主持人開 3 號是 🐐<br>換到 2 號會中的機率？'), F(2, 3), [F(1, 2), F(1, 3), '1'], { ask: '要不要換門？' });
-   if (k === 3) return mk(emo('🎂👥') + sub('班上 23 個人<br>有人同一天生日？'), '約 50%', ['約 6%', '約 25%', '約 90%'], { ask: '機率大概是多少？' });
-   return mk(emo('👶👶') + sub('兩個小孩，至少一個男生<br>兩個都是男生？'), F(1, 3), [F(1, 2), F(1, 4), F(2, 3)], { ask: '這題很多人答錯！' });
+   if (k === 0) { const n = R(4, 6); return mk(emo('🎟️'.repeat(n)) + sub(`${n} 支籤只有 1 支中獎，大家輪流抽<br>第 2 個抽的人中獎機率？`), F(1, n), [F(1, n - 1), F(1, 2), F(2, n), F(1, n + 1)], { ask: '先抽比較好嗎？' }); }
+   if (k === 1) return mk(emo('🎲🎲') + sub('擲兩顆骰子<br>至少一顆是 6 的機率？'), F(11, 36), [F(1, 3), F(1, 6), F(1, 36)], { ask: '機會有多大？' });
+   if (k === 2) return mk(emo('🚪🚪🚪') + sub('3 扇門：1 扇後面是汽車 🚗，2 扇是山羊 🐐<br>我選了 1 號門，主持人打開 3 號：是山羊<br>如果改選 2 號門，拿到汽車的機率？'), F(2, 3), [F(1, 2), F(1, 3), '1'], { ask: '要不要換門？' });
+   if (k === 3) return mk(emo('🎂👥') + sub('班上有 23 個人<br>至少兩人同一天生日的機率大約？'), '約 50%', ['約 6%', '約 25%', '約 90%'], { ask: '機率大概是多少？' });
+   return mk(emo('👶👶') + sub('一家有兩個小孩，已知至少一個是男生<br>兩個都是男生的機率？'), F(1, 3), [F(1, 2), F(1, 4), F(2, 3)], { ask: '這題很多人答錯！' });
  }},
  { id: 'app', s: 6, t: '微積分應用', g: k => {
    if (k === 0) { const a = R(1, 3), n = R(2, 5); return mkN(emo('🚗') + sub(`位置 s = ${a === 1 ? '' : a}<i>t</i>²<br><i>t</i> = ${n} 的速度？`), 2 * a * n, [a * n * n, a * n, 2 * a], { ask: '微分就是速度！' }); }
-   if (k === 1) { const m = R(5, 15), P = 4 * m; return mkN(emo('🐑🌾') + sub(`${P} 公尺圍籬<br>圍出長方形`), m * m, [(m - 1) * (m + 1), 2 * m * m, P * 2], { ask: '最大能圍多大？' }); }
+   if (k === 1) { const m = R(5, 15), P = 4 * m; return mkN(emo('🐑🌾') + sub(`用 ${P} 公尺的圍籬圍一個長方形<br>面積最大是多少？`), m * m, [(m - 1) * (m + 1), 2 * m * m, P * 2], { ask: '最大能圍多大？' }); }
    if (k === 2) { const a = R(1, 2); const pts = []; for (let x = -2.2; x <= 2.21; x += .2) pts.push(`${(150 + x * 55).toFixed(1)},${(200 - x * x * 38).toFixed(1)}`);
      const px = 150 + a * 55, py = 200 - a * a * 38, sl = 2 * a * 38 / 55; return mkN(pic('0 0 300 220', `<polyline points="${pts.join(' ')}"/><line x1="${px - 70}" y1="${py + 70 * sl}" x2="${px + 40}" y2="${py - 40 * sl}" stroke="${YL}"/><circle cx="${px}" cy="${py}" r="7" fill="${YL}" stroke="none"/>${lab(250, 190, '<tspan font-style="italic">y</tspan> = <tspan font-style="italic">x</tspan>²', { s: 28 })}`) + sub(`<i>x</i> = ${a} 的切線斜率？`), 2 * a, [a * a, a, 4 * a], { ask: '黃色那條線多斜？' }); }
    if (k === 3) { const n = pick([3, 6]); const pts = [], sh = ['30,200']; for (let x = 0; x <= n + .001; x += n / 20) { const X = 30 + x * 240 / n, Y = 200 - (x * x) / (n * n) * 170; pts.push(`${X.toFixed(1)},${Y.toFixed(1)}`); sh.push(`${X.toFixed(1)},${Y.toFixed(1)}`); } sh.push('270,200');
      return mkN(pic('0 0 300 230', `<polygon points="${sh.join(' ')}" fill="${DM}" stroke="none"/><polyline points="${pts.join(' ')}"/><line x1="20" y1="200" x2="290" y2="200"/>${lab(30, 220, 0, { s: 24 })}${lab(270, 220, n, { s: 24 })}${lab(90, 40, '<tspan font-style="italic">y</tspan> = <tspan font-style="italic">x</tspan>²', { s: 28 })}`) + sub('灰色面積 = ?'), n ** 3 / 3, [n ** 3, n * n, n ** 3 / 2], { ask: '彎彎的面積怎麼算？' }); }
-   return mk(emo('🏦✨') + sub('1 元，年利率 100%<br>每一瞬間都複利'), 'e 元', ['2 元', '∞ 元', '2.5 元'], { ask: '一年後變多少錢？' });
+   return mk(emo('🏦✨') + sub('存 1 元，年利率 100%<br>每一瞬間都利滾利，一年後變幾元？'), 'e 元', ['2 元', '∞ 元', '2.5 元'], { ask: '一年後變多少錢？' });
  }},
  { id: 'legend', s: 6, t: '傳奇名題', g: k => {
    if (k === 0) return mkN(`${ex('<i>i</i>π')} + 1 = ?`, 0, [1, -1, 2], { ask: '世界最美的公式？' });
-   if (k === 1) return mk(`1 + ${fr(1, 4)} + ${fr(1, 9)} + ${fr(1, 16)} + …`, fr(sup('π', 2), 6), ['2', fr(sup('π', 2), 4), 'e'], { ask: '尤拉解開的巴塞爾問題！' });
-   if (k === 2) return mk(`1 + ${fr(1, 2)} + ${fr(1, 3)} + ${fr(1, 4)} + …`, '∞', ['2', 'e', 'ln 2'], { ask: '一直加會停嗎？' });
-   if (k === 3) return mk(`1 − ${fr(1, 3)} + ${fr(1, 5)} − ${fr(1, 7)} + …`, fr('π', 4), ['1', fr('π', 2), 'ln 2'], { ask: '這個會等於什麼？' });
-   return pick([() => mk(`1 + ${fr(1, '1 + ' + fr(1, '1 + …'))}`, fr('1 + ' + sq(5), 2), [fr('1 − ' + sq(5), 2), '2', sq(2)], { ask: '黃金比例？' }),
+   if (k === 1) return mk(`1 + ${fr(1, 4)} + ${fr(1, 9)} + ${fr(1, 16)} + …` + sub('一直加下去 = ?'), fr(sup('π', 2), 6), ['2', fr(sup('π', 2), 4), 'e'], { ask: '尤拉解開的巴塞爾問題！' });
+   if (k === 2) return mk(`1 + ${fr(1, 2)} + ${fr(1, 3)} + ${fr(1, 4)} + …` + sub('一直加下去 = ?'), '∞', ['2', 'e', 'ln 2'], { ask: '一直加會停嗎？' });
+   if (k === 3) return mk(`1 − ${fr(1, 3)} + ${fr(1, 5)} − ${fr(1, 7)} + …` + sub('一直加下去 = ?'), fr('π', 4), ['1', fr('π', 2), 'ln 2'], { ask: '這個會等於什麼？' });
+   return pick([() => mk(`1 + ${fr(1, '1 + ' + fr(1, '1 + …'))}` + sub('無限連分數 = ?'), fr('1 + ' + sq(5), 2), [fr('1 − ' + sq(5), 2), '2', sq(2)], { ask: '黃金比例？' }),
      () => mk(`${integ('−∞', '∞')} ${ex(M + sup(X, 2))} d${X}`, sq('π'), ['π', '1', '2π'], { ask: '高斯積分！' })])();
  }},
 ];
 
-const ALLU = Object.fromEntries([...BASE, ...EXTRA].map(u => [u.id, u]));
+/* ================= 研究所 → 數學家（第二部劇情） ================= */
+const VEC = (a, b) => `(${N(a)}, ${N(b)})`;
+const PAIR = (u, v) => { const [p, q] = [u, v].sort((x, y) => x - y); return `${N(p)}, ${N(q)}`; };
+const modp = (b, e, m) => { let r = 1; b %= m; while (e > 0) { if (e & 1) r = r * b % m; b = b * b % m; e >>= 1; } return r; };
+const isPrime = n => { if (n < 2) return false; for (let i = 2; i * i <= n; i++) if (n % i === 0) return false; return true; };
+const IM = '<i>i</i>', YY = '<i>y</i>';
+const cpx = (a, b) => b === 0 ? N(a) : a === 0 ? (b === 1 ? IM : b === -1 ? M + IM : N(b) + IM) : `${N(a)} ${b < 0 ? '−' : '+'} ${Math.abs(b) === 1 ? '' : Math.abs(b)}${IM}`;
+const fib = n => { let a = 1, b = 1; for (let i = 2; i < n; i++) [a, b] = [b, a + b]; return b; };
+const ngon = (n, r, cx0, cy0) => [...Array(n)].map((_, i) => { const a = -Math.PI / 2 + i * 2 * Math.PI / n; return [cx0 + r * Math.cos(a), cy0 + r * Math.sin(a)]; });
+const cubePic = () => pic('0 0 220 200', `<rect x="20" y="60" width="120" height="120" fill="${DM}"/><path d="M20 60 L80 20 L200 20 L140 60 M200 20 L200 140 L140 180"/><path d="M20 180 L80 140 L200 140 M80 140 L80 20" stroke-dasharray="7 7" stroke-width="3"/>`);
+
+const EXTRA2 = [
+ /* 研究所入學考 */
+ { id: 'la', s: 7, t: '線性代數', g: k => {
+   if (k === 0) { const v = [0, 0, 0, 0, 0, 0].map(() => R(-3, 4)); const [a, b, c, d, e, f] = v; const x = a * e + b * f, y = c * e + d * f;
+     return mk(`${matB([[a, b], [c, d]])} ${matB([[e], [f]])}` + sub('矩陣乘向量 = ?'), VEC(x, y), [VEC(a * e + c * f, b * e + d * f), VEC(a * e, d * f), VEC(x, -y), VEC(y, x)], { fill: () => VEC(R(-9, 9), R(-9, 9)), ask: '研究所要考矩陣！' }); }
+   if (k === 1) { let a, d; do { a = R(-4, 6); d = R(-4, 6); } while (a === d || !a || !d || a === -d); return mk(matB([[a, 0], [0, d]]) + sub('這個矩陣的特徵值是？'), PAIR(a, d), [PAIR(a + d, a * d), PAIR(0, a), PAIR(-a, -d)], { fill: () => PAIR(R(-5, 9), R(-5, 9)), ask: '特徵值是什麼？' }); }
+   if (k === 2) { let a, b, d; do { a = R(-3, 6); b = R(1, 7); d = R(-3, 6); } while (a === d || b === a || b === d || !a || !d); return mk(matB([[a, b], [0, d]]) + sub('三角矩陣的特徵值是？'), PAIR(a, d), [PAIR(a, b), PAIR(b, d), PAIR(a + d, a * d - b)], { fill: () => PAIR(R(-5, 9), R(-5, 9)), ask: '右上角的數有關係嗎？' }); }
+   if (k === 3) { let a, b; do { a = R(1, 6); b = R(1, 4); } while (a === b); return mk(matB([[a, b], [b, a]]) + sub('這個矩陣的特徵值是？'), PAIR(a + b, a - b), [PAIR(a, b), PAIR(a * a - b * b, 0), PAIR(a + b, b - a)], { fill: () => PAIR(R(-5, 9), R(-5, 9)) }); }
+   const n = R(3, 10); return mkN(`${matB([[1, 1], [0, 1]])}<sup>${n}</sup>` + sub('乘開後，右上角的數字 = ?'), n, [1, n * n, 2 ** n], { ask: '要乘好多次耶…' });
+ }},
+ { id: 'series', s: 7, t: '級數', g: k => {
+   if (k === 0) return mk(`${fr(1, '1·2')} + ${fr(1, '2·3')} + ${fr(1, '3·4')} + …` + sub('一直加下去 = ?'), '1', [F(1, 2), '2', '∞'], { ask: '這個會加到無限大嗎？' });
+   if (k === 1) { const [e, ans] = pick([['2', '收斂（有限的數）'], ['3', '收斂（有限的數）'], ['½', '發散（無限大）']]); return mk(`1 + ${fr(1, sup(2, e))} + ${fr(1, sup(3, e))} + ${fr(1, sup(4, e))} + …` + sub('會收斂還是發散？'), ans, ['收斂（有限的數）', '發散（無限大）', '等於 0', '不一定'], { ask: '研究所必考的 p 級數！' }); }
+   if (k === 2) { const [q, a] = pick([[`1 + ${fr(1, 3)} + ${fr(1, 9)} + ${fr(1, 27)} + …`, F(3, 2)], [`1 − ${fr(1, 2)} + ${fr(1, 4)} − ${fr(1, 8)} + …`, F(2, 3)], [`1 + ${fr(1, 4)} + ${fr(1, 16)} + ${fr(1, 64)} + …`, F(4, 3)]]); return mk(q + sub('一直加下去 = ?'), a, ['2', '1', F(1, 2), F(3, 4)], { fill: () => F(R(1, 9), R(2, 9)) }); }
+   if (k === 3) return mk(`${fr(1, 2)} + ${fr(2, 4)} + ${fr(3, 8)} + ${fr(4, 16)} + …` + sub('一直加下去 = ?'), '2', ['1', '4', '∞'], { ask: '分子也在變大…' });
+   return mk(`1 − ${fr(1, 2)} + ${fr(1, 3)} − ${fr(1, 4)} + …` + sub('一直加下去 = ?'), 'ln 2', ['1', '0', fr('π', 4)], { ask: '加加減減會等於什麼？' });
+ }},
+ { id: 'taylor', s: 7, t: '泰勒展開', g: k => {
+   if (k === 0) return mk(`${ex(X)} = 1 + ${X} + □${sup(X, 2)} + …` + sub('□ = ?'), F(1, 2), ['1', '2', F(1, 3)], { ask: '把 e 的 x 次方拆開！' });
+   if (k === 1) return mkN(`sin ${X} = ${X} − ${fr(sup(X, 3), '□')} + …` + sub('□ = ?'), 6, [3, 2, 9], { ask: 'sin 也能拆開？' });
+   if (k === 2) { const n = R(2, 9); return mkN(`(1 + ${X})<sup>${n}</sup> ≈ 1 + □${X}` + sub('<i>x</i> 很小的時候，□ = ?'), n, [1, n * n, 2 * n], { ask: '近似值怎麼抓？' }); }
+   if (k === 3) { const p = R(3, 4); return mk(ex(X) + sub(`展開後 ${sup(X, p)} 的係數 = ?`), F(1, fact(p)), [F(1, p), F(1, fact(p - 1)), '1']); }
+   return mkN(`cos ${X} = 1 − ${fr(sup(X, 2), 2)} + ${fr(sup(X, 4), '□')} − …` + sub('□ = ?'), 24, [4, 12, 16]);
+ }},
+ { id: 'dist', s: 7, t: '機率分佈', g: k => {
+   if (k === 0) { const n = pick([10, 20, 50, 100]); return mkN(emo('🪙') + sub(`丟 ${n} 次硬幣<br>平均會出現幾次正面？`), n / 2, [n, n / 4, n / 2 + 1]); }
+   if (k === 1) { const n = pick([10, 20, 50]), p = pick([1, 2, 3]); return mkN(emo('🏀') + sub(`投籃命中率 ${p * 10}%，投 ${n} 球<br>平均進幾球？`), n * p / 10, [n * p / 10 + 1, n * p / 5, n - n * p / 10]); }
+   if (k === 2) { const n = pick([100, 400]); return mkN(emo('🪙') + sub(`丟 ${n} 次硬幣<br>正面次數的「變異數」= ?`), n / 4, [n / 2, Math.sqrt(n) / 2, n], { ask: '變異數不是標準差喔！' }); }
+   if (k === 3) return mk(emo('🔔') + sub('常態分佈：平均值 ± 1 個標準差<br>大約包含多少資料？'), '68%', ['50%', '95%', '99.7%'], { ask: '鐘形曲線！' });
+   return mk(emo('🎰') + sub('在 0 到 1 之間隨機挑一個數<br>它的變異數 = ?'), F(1, 12), [F(1, 2), F(1, 3), F(1, 4)]);
+ }},
+ { id: 'ode', s: 7, t: '微分方程', g: k => {
+   if (k === 0) return mk(`${YY}′ = ${YY}，${YY}(0) = 1` + sub(`${YY} = ?`), ex(X), [X, fr(sup(X, 2), 2), ex(M + X)], { ask: '微分完跟自己一樣？' });
+   if (k === 1) { const a = R(2, 5); return mk(`${YY}′ = ${a}${YY}` + sub(`通解 ${YY} = ?`), 'C' + ex(a + X), [a + ex(X), 'C' + ex(X + '/' + a), a + X + ' + C'], { ask: '會長大的方程式！' }); }
+   if (k === 2) return mk(`${YY}″ + ${YY} = 0` + sub('下面哪一組是解？'), `sin ${X}、cos ${X}`, [`${ex(X)}、${ex(M + X)}`, `${X}、1`, `sin ${X}、${ex(X)}`], { ask: '會一直擺動的解？' });
+   if (k === 3) return mk(`${YY}″ − ${YY} = 0` + sub('下面哪一組是解？'), `${ex(X)}、${ex(M + X)}`, [`sin ${X}、cos ${X}`, `${X}、1`, `cos ${X}、${ex(X)}`]);
+   const h = pick([5, 10, 30]); return mk(emo('☢️') + sub(`放射性物質每 ${h} 年剩一半<br>${3 * h} 年後剩下多少？`), F(1, 8), [F(1, 3), F(1, 6), F(1, 9)], { ask: '半衰期！' });
+ }},
+ /* 碩士 */
+ { id: 'nt', s: 8, t: '數論', g: k => {
+   if (k === 0) { const m = R(3, 9), a = R(20, 99); return mkN(`${a} ÷ ${m}` + sub('餘數 = ?'), a % m, [Math.floor(a / m), m - a % m, (a % m + 1) % m], { fill: () => N(R(0, m)), ask: '餘數是數論的開始！' }); }
+   if (k === 1 || k === 2) { let g, x, y; do { g = R(2, 12); x = R(2, 9); y = R(2, 9); } while (x === y || gcd(x, y) !== 1); const a = g * x, b = g * y;
+     return k === 1 ? mkN(`gcd(${a}, ${b})` + sub('最大公因數 = ?'), g, [g * x, Math.min(a, b), g * x * y]) : mkN(`lcm(${a}, ${b})` + sub('最小公倍數 = ?'), g * x * y, [a * b, g, g * x * y * 2]); }
+   if (k === 3) { const b = pick([2, 3]), m = pick([5, 7]), n = R(50, 200), r = modp(b, n, m); return mk(`${sup(b, n)} ÷ ${m}` + sub('餘數 = ?'), N(r), [...Array(m).keys()].filter(x => x !== r).map(N), { ask: '這麼大怎麼算？' }); }
+   const p = pick([7, 11, 13]), a = R(2, p - 1); return mkN(`${sup(a, p - 1)} ÷ ${p}` + sub('餘數 = ?'), 1, [0, a, p - 1], { ask: '提示：費馬小定理！' });
+ }},
+ { id: 'prime', s: 8, t: '質數', g: k => {
+   if (k === 0) { const a = pick([53, 59, 61, 67, 71, 73, 79, 83, 89, 97]); return mkN(emo('🔢') + sub('下面哪一個是質數？'), a, shuffle([51, 57, 87, 91, 77, 63, 69, 93, 81, 49]).slice(0, 3), { ask: '有幾個是陷阱喔！' }); }
+   if (k === 1) { const [n, a] = pick([[20, 8], [30, 10], [50, 15], [100, 25]]); return mkN(emo('🔢') + sub(`1 到 ${n} 之中<br>有幾個質數？`), a, [a + 1, a - 1, a + 2]); }
+   if (k === 2) { const p = pick([7, 11, 13, 17, 19]); return mkN(`φ(${p})` + sub(`1 到 ${p} 之中，跟 ${p} 互質的有幾個？`), p - 1, [p, (p - 1) / 2, p - 2], { ask: '歐拉函數！' }); }
+   if (k === 3) { const [p, q] = pick([[3, 5], [3, 7], [5, 7], [3, 11], [5, 11]]); return mkN(`φ(${p * q})` + sub(`${p * q} = ${p} × ${q}，歐拉函數 = ?`), (p - 1) * (q - 1), [p * q - 1, p + q, p * q - p - q]); }
+   return pick([() => mkN('2047 = 23 × ?' + sub('2¹¹ − 1 看起來像質數，其實不是！'), 89, [87, 91, 97]), () => mkN('1001 = 7 × 11 × ?', 13, [17, 9, 11])])();
+ }},
+ { id: 'group', s: 8, t: '群論入門', g: k => {
+   if (k === 0) { const h = R(7, 11), a = R(4, 9), ans = (h + a - 1) % 12 + 1; return mkN(clock(h, 0) + sub(`現在 ${h} 點，再過 ${a} 小時是幾點？`), ans, [h + a, ans === 12 ? 11 : ans + 1, ans === 1 ? 2 : ans - 1], { ask: '時鐘就是一個「群」！' }); }
+   if (k === 1) return mkN(pic('0 0 200 200', `<rect x="40" y="40" width="120" height="120" fill="${DM}"/><path d="M100 20 V180 M20 100 H180 M30 30 L170 170 M170 30 L30 170" stroke-dasharray="6 6" stroke-width="2" stroke="${YL}"/>`) + sub('正方形有幾種對稱（旋轉＋翻面）？'), 8, [4, 6, 16]);
+   if (k === 2) { const t = ngon(3, 80, 100, 110).map(p => p.map(v => v.toFixed(1)).join(',')).join(' '); return mkN(pic('0 0 200 200', `<polygon points="${t}" fill="${DM}"/>`) + sub('正三角形有幾種對稱（旋轉＋翻面）？'), 6, [3, 9, 12]); }
+   if (k === 3) { const n = pick([8, 10, 12]); let a; do { a = R(2, n - 1); } while (a === n / 2); const o = n / gcd(a, n); return mkN(emo('⏱️') + sub(`圓盤有 ${n} 格，每次走 ${a} 格<br>最少走幾次會回到起點？`), o, [n, a, n - a], { fill: () => N(R(2, 12)) }); }
+   return mkN(cubePic() + sub('正方體有幾種「旋轉」<br>轉完看起來跟原本一模一樣？'), 24, [6, 12, 48]);
+ }},
+ { id: 'complex', s: 8, t: '複數', g: k => {
+   if (k === 0) return mk(`${sup(IM, 2)} = ?`, M + '1', ['1', IM, '0'], { ask: '平方會變負的數？' });
+   if (k === 1) { const n = R(5, 99), cyc = ['1', IM, M + '1', M + IM]; return mk(`${sup(IM, n)} = ?`, cyc[n % 4], cyc.filter((_, j) => j !== n % 4)); }
+   if (k === 2) { const [a, b, c] = pick([[3, 4, 5], [6, 8, 10], [5, 12, 13], [8, 6, 10]]); return mkN(`| ${cpx(a, b)} | = ?` + sub('複數的長度'), c, [a + b, a * a + b * b, c + 1]); }
+   if (k === 3) { const nz = () => R(1, 3) * sgn(); const a = nz(), b = nz(), c = nz(), d = nz(); return mk(`(${cpx(a, b)})(${cpx(c, d)})` + sub('乘開 = ?'), cpx(a * c - b * d, a * d + b * c), [cpx(a * c + b * d, a * d + b * c), cpx(a * c - b * d, a * d - b * c), cpx(a * c, b * d)], { fill: () => cpx(R(-9, 9), R(-9, 9)) }); }
+   return pick([() => mk(`${ex(IM + 'π/2')} = ?`, IM, ['1', M + '1', M + IM], { ask: '尤拉公式轉 90 度！' }), () => mk(`(1 + ${IM})<sup>8</sup> = ?`, '16', ['8', '16' + IM, '256'])])();
+ }},
+ { id: 'proof', s: 8, t: '證明方法', g: k => {
+   if (k === 0) { const n = R(5, 10); return mkN(`1 + 3 + 5 + … + ${2 * n - 1}` + sub('加起來 = ?'), n * n, [n * (n + 1), n * n - n, 2 * n * n]); }
+   if (k === 1) { const n = '<i>n</i>'; return mk(`1 + 3 + 5 + … + (2${n} − 1)` + sub(`前 ${n} 個奇數的和 = ?`), sup(n, 2), ['2' + n, `${n}(${n} + 1)`, `2${n} − 1`], { ask: '用數學歸納法！' }); }
+   if (k === 2) return mk(emo('√2') + sub('要證明 √2 不是分數<br>用哪一種方法？'), '反證法', ['數學歸納法', '畫圖量量看', '用計算機算'], { ask: '兩千年前的證明！' });
+   if (k === 3) return mk(emo('🏛️') + sub('歐幾里得證明了<br>質數一共有幾個？'), '無限多個', ['剛好 100 個', '很多但有限', '還沒人知道']);
+   const n = R(4, 10), t = n * (n + 1) / 2; return mkN(`${sup(1, 3)} + ${sup(2, 3)} + … + ${sup(n, 3)}` + sub('加起來 = ?'), t * t, [t, n ** 3, t * t + n], { ask: '立方和有神奇公式！' });
+ }},
+ /* 博士 */
+ { id: 'graph', s: 9, t: '圖論', g: k => {
+   if (k === 0) { const n = R(4, 6), P2 = ngon(n, 80, 100, 100); let s = ''; for (let i = 0; i < n; i++) for (let j = i + 1; j < n; j++) s += `<line x1="${P2[i][0]}" y1="${P2[i][1]}" x2="${P2[j][0]}" y2="${P2[j][1]}" stroke-width="3"/>`; P2.forEach(p => s += `<circle cx="${p[0]}" cy="${p[1]}" r="9" fill="${YL}" stroke="none"/>`);
+     return mkN(pic('0 0 200 200', s) + sub(`${n} 個點兩兩都連線<br>一共幾條線？`), comb(n, 2), [n * (n - 1), n, comb(n, 2) + n]); }
+   if (k === 1) { const n = R(6, 12); return mkN(emo('🌳') + sub(`${n} 個點連成一棵「樹」（不能有圈）<br>需要幾條線？`), n - 1, [n, n + 1, comb(n, 2)]); }
+   if (k === 2) return mk(pic('0 0 200 200', `<rect x="30" y="30" width="140" height="140"/><path d="M30 30 L170 170 M170 30 L30 170"/>${[[30, 30], [170, 30], [30, 170], [170, 170]].map(p => `<circle cx="${p[0]}" cy="${p[1]}" r="9" fill="${YL}" stroke="none"/>`).join('')}`) + sub('每條線剛好畫一次<br>能一筆畫完嗎？'), '不能', ['能，從哪裡開始都行', '能，要從左上角開始', '能，要從正中間開始'], { ask: '一筆畫挑戰！' });
+   if (k === 3) return mkN(emo('🗺️') + sub('畫地圖時，相鄰的國家要不同色<br>最少幾種顏色一定夠？'), 4, [3, 5, 6], { ask: '四色定理！' });
+   return mkN(cubePic() + sub('正方體：頂點數 − 邊數 + 面數 = ?'), 2, [0, 1, 6], { ask: '尤拉公式！' });
+ }},
+ { id: 'platonic', s: 9, t: '幾何拓撲', g: k => {
+   if (k === 0) return mkN(cubePic() + sub('正方體有幾條邊？'), 12, [8, 6, 24]);
+   if (k === 1) { const [nm, w, a, ds] = pick([['正四面體', '面', 4, [3, 6, 8]], ['正八面體', '面', 8, [6, 12, 4]], ['正方體', '頂點', 8, [6, 12, 4]], ['正十二面體', '面', 12, [20, 10, 30]], ['正二十面體', '面', 20, [12, 30, 24]]]); return mkN(emo('💎') + sub(`${nm}有幾個${w}？`), a, ds); }
+   if (k === 2) return mk(emo('🎲💎') + sub('正多面體（每一面都一模一樣）<br>全世界一共有幾種？'), '5', ['3', '7', '無限多'], { ask: '柏拉圖立體！' });
+   if (k === 3) return mkN(emo('⚽') + sub('傳統黑白足球上<br>有幾塊黑色五邊形？'), 12, [10, 20, 32]);
+   return mk(emo('🍩') + sub('拓撲學家眼中<br>甜甜圈跟哪個是「一樣的」？'), '☕ 有把手的杯子', ['⚽ 足球', '🥚 雞蛋', '🍪 餅乾'], { ask: '拓撲學好神奇！' });
+ }},
+ { id: 'combo', s: 9, t: '組合數學', g: k => {
+   if (k === 0) { const n = R(4, 7); return mkN(emo('🪜') + sub(`爬 ${n} 階樓梯，一次走 1 或 2 階<br>有幾種走法？`), fib(n + 1), [2 ** (n - 1), 2 * n, fib(n + 1) + 1], { ask: '這是費波那契數列！' }); }
+   if (k === 1) { const m = R(2, 4), n = R(2, 3), W = 200 / m, H2 = 120 / n; let s = ''; for (let i = 0; i <= m; i++) s += `<line x1="${20 + i * W}" y1="20" x2="${20 + i * W}" y2="140"/>`; for (let j = 0; j <= n; j++) s += `<line x1="20" y1="${20 + j * H2}" x2="220" y2="${20 + j * H2}"/>`;
+     s += `<circle cx="20" cy="140" r="10" fill="${YL}" stroke="none"/><circle cx="220" cy="20" r="10" fill="#ee7b30" stroke="none"/>`;
+     return mkN(pic('0 0 240 160', s) + sub('只能往右或往上走<br>從黃點到橘點有幾種走法？'), comb(m + n, n), [m * n, m + n, comb(m + n, n) * 2]); }
+   if (k === 2) { const n = R(3, 6); return mkN(emo('🍎🍌🍇') + sub(`${n} 樣東西，每樣可拿可不拿<br>一共幾種拿法？`), 2 ** n, [n * n, fact(n), 2 ** n - 1]); }
+   if (k === 3) { const n = pick([3, 4]); return mkN(emo('🎩'.repeat(n)) + sub(`${n} 個人的帽子混在一起亂拿<br>每個人都拿錯，有幾種情況？`), n === 3 ? 2 : 9, n === 3 ? [3, 1, 6] : [6, 12, 24], { ask: '錯排問題！' }); }
+   const n = pick([3, 4]); return mkN(emo('( ) ( ) ( )') + sub(`${n} 對括號正確配對，像 (())()<br>一共有幾種排法？`), n === 3 ? 5 : 14, n === 3 ? [6, 3, 8] : [16, 24, 12], { ask: '卡特蘭數！' });
+ }},
+ { id: 'analysis', s: 9, t: '分析學', g: k => {
+   if (k === 0) { const n = R(2, 9); return mk(`${integ(0, 1)} ${sup(X, n)} d${X}`, F(1, n + 1), [F(1, n), F(n, n + 1), '1']); }
+   if (k === 1) return mk(`${lim('<i>n</i>', '∞')} <i>n</i><sup>1/<i>n</i></sup>`, '1', ['0', '∞', 'e'], { ask: '開 n 次方根…' });
+   if (k === 2) return mk(`${integ(0, '∞')} ${ex(M + X)} d${X}`, '1', ['∞', '0', 'e'], { ask: '積到無限遠？' });
+   if (k === 3) { const n = R(4, 6); return mkN(`Γ(${n}) = ?` + sub('Γ 函數：階乘的推廣'), fact(n - 1), [fact(n), n * (n - 1), fact(n - 2)]); }
+   return mk(`${lim(X, 0)} sin ${fr(1, X)}`, '不存在', ['0', '1', '∞'], { ask: '一直抖來抖去的函數…' });
+ }},
+ { id: 'prob3', s: 9, t: '機率研究', g: k => {
+   if (k === 0) return mkN(emo('🎲') + sub('一直擲骰子，直到擲出 6<br>平均要擲幾次？'), 6, [3, 5, 36]);
+   if (k === 1) return mkN(emo('🪙') + sub('一直丟硬幣，直到出現正面<br>平均要丟幾次？'), 2, [1, 3, 4]);
+   if (k === 2) return mk(emo('🃏🃏🃏') + sub('每包隨機 1 張，一共 3 種卡<br>平均買幾包才能集滿？'), '5.5', ['3', '6', '9'], { ask: '集卡問題！' });
+   if (k === 3) return mk(emo('🪡') + sub('布豐投針：針長 = 地板線的間距<br>針壓到線的機率？'), fr(2, 'π'), [F(1, 2), fr('π', 4), fr(1, 'π')], { ask: '丟針可以算出 π！' });
+   let s = `<rect x="20" y="20" width="180" height="180" fill="none"/><path d="M20 200 L20 20 A180 180 0 0 1 200 200 Z" fill="${DM}"/>`; for (let i = 0; i < 26; i++) s += `<circle cx="${(20 + rnd() * 180).toFixed(0)}" cy="${(20 + rnd() * 180).toFixed(0)}" r="4" fill="${YL}" stroke="none"/>`;
+   return mk(pic('0 0 220 220', s) + sub('在正方形裡隨便點一點<br>落在四分之一圓裡的機率？'), fr('π', 4), [F(1, 2), F(3, 4), fr(1, 'π')], { ask: '蒙地卡羅法！' });
+ }},
+ /* 數學家 */
+ { id: 'famous', s: 10, t: '世紀難題', g: k => {
+   if (k === 0) { let n, p; do { n = R(15, 50) * 2; p = pick([3, 5, 7, 11, 13]); } while (!isPrime(n - p)); return mkN(`${n} = ${p} + ?` + sub('哥德巴赫猜想：偶數 = 兩個質數相加'), n - p, [n - p + 2, n - p - 2, n - p + 4], { ask: '這是兩百多年的難題！' }); }
+   if (k === 1) return mk(`${sup(X, 3)} + ${sup(YY, 3)} = ${sup('<i>z</i>', 3)}` + sub('有幾組正整數解？'), '0 組', ['1 組', '3 組', '無限多組'], { ask: '費馬最後定理！' });
+   if (k === 2) { const [a, b] = pick([[11, 13], [17, 19], [29, 31], [41, 43], [59, 61], [71, 73]]); return mkN(`${a} 和 ?` + sub('孿生質數：相差 2 的兩個質數'), b, [a + 1, a + 4, b + 2]); }
+   if (k === 3) return mk(emo('ζ') + sub('黎曼猜想：ζ 函數的零點<br>實部都等於多少？'), F(1, 2), ['0', '1', '2'], { ask: '一百萬美金的問題！' });
+   const n = pick([6, 7, 9, 12]); let x = n, st = 0; while (x !== 1) { x = x % 2 ? 3 * x + 1 : x / 2; st++; }
+   return mkN(emo('🔁') + sub(`從 ${n} 開始：偶數就除以 2、奇數就乘 3 加 1<br>幾步會變成 1？`), st, [st + 1, st - 1, st + 3], { ask: '考拉茲猜想！' });
+ }},
+ { id: 'consts', s: 10, t: '數學常數', g: k => {
+   if (k === 0) return mk('π ≈ ?', '3.14159', ['3.14169', '3.15149', '3.14519'], { ask: '圓周率背得起來嗎？' });
+   if (k === 1) return mk('√2 ≈ ?', '1.414', ['1.732', '1.618', '1.441']);
+   if (k === 2) return mk('e ≈ ?', '2.718', ['2.817', '2.178', '3.142'], { ask: '自然對數的底！' });
+   if (k === 3) return mk('黃金比例 φ ≈ ?', '1.618', ['1.414', '1.732', '1.816']);
+   return mk(emo('👦') + sub('小學時就算出 1 + 2 + … + 100<br>的數學家是誰？'), '高斯', ['歐拉', '牛頓', '費馬'], { ask: '跟我一樣小就會數學！' });
+ }},
+ { id: 'crypto', s: 10, t: '密碼學', g: k => {
+   const AB = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+   if (k === 0) { const s = R(1, 5), i = R(0, 19); return mk(emo('🔐') + sub(`凱撒密碼：每個字母往後 ${s} 個<br>${AB[i]} 會變成？`), AB[i + s], [AB[i + s + 1], AB[Math.max(0, i - s)], AB[i + 1 === i + s ? i + s + 2 : i + 1]], { fill: () => pick([...AB]), ask: '凱撒大帝用的密碼！' }); }
+   if (k === 1) { const [n, p, q] = pick([[91, 7, 13], [143, 11, 13], [221, 13, 17], [77, 7, 11], [187, 11, 17]]); return mkN(`${n} = ${p} × ?`, q, [q + 2, q - 2, q + 4], { ask: '密碼都靠拆質數！' }); }
+   if (k === 2) { const m = pick([7, 11]), a = R(2, m - 1); let inv = 1; while (a * inv % m !== 1) inv++; return mkN(`${a} × ? ÷ ${m} 餘 1` + sub(`? 是 1 到 ${m - 1} 之間的數`), inv, [...Array(m - 1).keys()].map(x => x + 1).filter(x => x !== inv)); }
+   if (k === 3) { const [p, q] = pick([[3, 11], [5, 7], [3, 7], [5, 11]]); return mkN(emo('🔑') + sub(`RSA 密碼：n = ${p} × ${q}<br>φ(n) = ?`), (p - 1) * (q - 1), [p * q, p * q - 1, p + q]); }
+   const [e, ph] = pick([[3, 20], [7, 24], [3, 40], [7, 40]]); let d = 1; while (e * d % ph !== 1) d++;
+   return mkN(emo('🔑') + sub(`RSA：${e} × d ÷ ${ph} 餘 1<br>私鑰 d 最小是多少？`), d, [d + ph, e, ph - d], { ask: '網路銀行就是用這個！' });
+ }},
+ { id: 'fractal', s: 10, t: '碎形與無限', g: k => {
+   if (k === 0) { const tri3 = (x, y, w, lv) => lv === 0 ? `<path d="M${x} ${y} L${x + w} ${y} L${x + w / 2} ${y - w * .87} Z" fill="${CH}" stroke="none"/>` : tri3(x, y, w / 2, lv - 1) + tri3(x + w / 2, y, w / 2, lv - 1) + tri3(x + w / 4, y - w * .435, w / 2, lv - 1);
+     return mkN(pic('0 0 340 110', tri3(5, 100, 90, 0) + tri3(115, 100, 90, 1) + tri3(225, 100, 90, 2) + lab(330, 60, '?', { s: 40 })) + sub('下一個圖有幾個小三角形？'), 27, [12, 18, 81], { ask: '謝爾賓斯基三角形！' }); }
+   if (k === 1) return mkN('3, 12, 48, ?' + sub('科赫雪花：每一代的邊數'), 192, [96, 144, 64], { ask: '雪花的邊越來越多！' });
+   if (k === 2) return mk(emo('✂️') + sub('一條線挖掉中間的 1/3<br>剩下的每段再挖一次，剩多長？'), F(4, 9), [F(1, 3), F(2, 3), F(1, 9)], { ask: '康托集合！' });
+   if (k === 3) return mk(emo('♾️') + sub('自然數 1, 2, 3, … 和偶數 2, 4, 6, …<br>哪一邊比較多？'), '一樣多', ['自然數比較多', '偶數比較多', '沒辦法比'], { ask: '無限大也能比大小？' });
+   return mk(emo('🏨') + sub('有無限多間房的旅館已經客滿<br>又來 1 位客人，住得下嗎？'), '住得下', ['住不下', '要等人退房', '只能睡大廳'], { ask: '希爾伯特旅館！' });
+ }},
+ { id: 'master', s: 10, t: '畢生挑戰', g: k => { const pool = [...BASE, ...EXTRA, ...EXTRA2.filter(u => u.id !== 'master')]; const u = pick(pool); const q = u.g(R(3, 4)); q.ask = q.ask || `${u.t}的最難題！`; return q; } },
+];
+
+const ALLU = Object.fromEntries([...BASE, ...EXTRA, ...EXTRA2].map(u => [u.id, u]));
 const OLD_IDS = BASE.map(u => u.id);
 const UNITS = ['zf', 'shop', 'md', 'area', 'eq',  'sq2', 'ang', 'py', 'speed', 'fac',  'quad', 'circ', 'ap', 'prob', 'old1',
   'pow', 'money', 'log', 'pat', 'rem',  'trig', 'coord', 'vec', 'perm', 'old2',  'lim', 'stat', 'det', 'ex', 'prob2',
-  'd1', 'app', 'd2', 'flim', 'int', 'legend'].map(id => ALLU[id]);
-const GRAD = {}; [[2, '國中'], [5, '高中'], [6, '大學']].forEach(([st, n]) => { let last = -1; UNITS.forEach((u, i) => { if (u.s === st) last = i; }); GRAD[last] = n; });
+  'd1', 'app', 'd2', 'flim', 'int', 'legend',
+  'la', 'series', 'taylor', 'dist', 'ode',  'nt', 'prime', 'group', 'complex', 'proof',  'graph', 'platonic', 'combo', 'analysis', 'prob3',  'famous', 'consts', 'crypto', 'fractal', 'master'].map(id => ALLU[id]);
+const GRAD = {}; [2, 5, 6, 7, 8, 9, 10].forEach(st => { let last = -1; UNITS.forEach((u, i) => { if (u.s === st) last = i; }); GRAD[last] = st; });
 const did = i => S.done[UNITS[i].id];
 const GRANDPA = '周宗夯';
 const KIDNAMES = ['小寶', '小明', '阿弟', '小胖'];
@@ -686,8 +853,8 @@ function say(html){
 function star(cx, cy, r){ let p = ''; for (let i = 0; i < 10; i++) { const a = -Math.PI / 2 + i * Math.PI / 5, rr = i % 2 ? r * .45 : r; p += (cx + Math.cos(a) * rr).toFixed(1) + ',' + (cy + Math.sin(a) * rr).toFixed(1) + ' '; } return `<polygon points="${p}" fill="#f6c21a" stroke="#d48a00" stroke-width="2.5" stroke-linejoin="round"/>`; }
 function kidSVG(look, mood, cap){
   const ink = '#2a1d18', skin = '#ffd9b8';
-  const shirt = ['#3f6fb4', '#f7f7f3', '#e47a39'][look];
-  const sc = [.84, .93, 1][look];
+  const shirt = ['#3f6fb4', '#f7f7f3', '#e47a39', '#4f8a5b', '#27324f'][look];
+  const sc = [.84, .93, 1, 1, 1][look];
   let eyes, mouth, brows = '', extra = '', blush = .55, br = 11;
   const dotEye = (x, y) => `<ellipse cx="${x}" cy="${y}" rx="8" ry="10" fill="${ink}"/><circle cx="${x + 3}" cy="${y - 4}" r="3" fill="#fff"/>`;
   const openMouth = `<path d="M80 136 Q100 166 120 136 Z" fill="#b5323a"/><path d="M88 149 Q100 158 112 149 Q100 144 88 149Z" fill="#ff8f8f"/>`;
@@ -705,8 +872,9 @@ function kidSVG(look, mood, cap){
   }
   const collar = look === 0 ? `<path d="M78 196 L100 222 L122 196" fill="#fff" stroke="#e6e6e6" stroke-width="2"/>`
     : look === 1 ? `<path d="M80 194 L100 210 L120 194" fill="#fff" stroke="#d8d8d0" stroke-width="2"/><path d="M95 208 L105 208 L109 250 L100 258 L91 250 Z" fill="#2c3e78"/>`
-    : `<path d="M70 192 Q100 222 130 192" fill="none" stroke="#c45e22" stroke-width="7"/><line x1="90" y1="208" x2="88" y2="238" stroke="#fff" stroke-width="4"/><line x1="110" y1="208" x2="112" y2="238" stroke="#fff" stroke-width="4"/>`;
-  const glasses = look === 2 ? `<g fill="none" stroke="#3a3a3a" stroke-width="4"><circle cx="74" cy="110" r="20"/><circle cx="126" cy="110" r="20"/><path d="M94 108 Q100 103 106 108"/></g>` : '';
+    : look === 4 ? `<path d="M74 192 L100 246 L126 192 Z" fill="#fff"/><path d="M95 202 L105 202 L108 236 L100 248 L92 236 Z" fill="#c0392b"/><path d="M74 192 L92 230 L80 262 M126 192 L108 230 L120 262" fill="none" stroke="#1b2440" stroke-width="5"/>`
+    : `<path d="M70 192 Q100 222 130 192" fill="none" stroke="${look === 3 ? '#356a43' : '#c45e22'}" stroke-width="7"/><line x1="90" y1="208" x2="88" y2="238" stroke="#fff" stroke-width="4"/><line x1="110" y1="208" x2="112" y2="238" stroke="#fff" stroke-width="4"/>`;
+  const glasses = look >= 2 ? `<g fill="none" stroke="#3a3a3a" stroke-width="4"><circle cx="74" cy="110" r="20"/><circle cx="126" cy="110" r="20"/><path d="M94 108 Q100 103 106 108"/></g>` : '';
   const hat = cap ? `<g><path d="M40 52 L100 26 L160 52 L100 76 Z" fill="#1d1d26"/><rect x="70" y="56" width="60" height="22" rx="4" fill="#1d1d26"/><path d="M152 55 L156 92" stroke="#f2b41c" stroke-width="4"/><circle cx="156" cy="95" r="6" fill="#f2b41c"/></g>` : '';
   return `<svg viewBox="0 0 200 260" aria-hidden="true"><g transform="translate(100 260) scale(${sc}) translate(-100 -260)">
     <path d="M28 262 Q30 196 100 188 Q170 196 172 262 Z" fill="${shirt}" stroke="rgba(0,0,0,.12)" stroke-width="2"/>${collar}
@@ -728,7 +896,7 @@ function setKid(el, look, mood, anim, cap){ el.innerHTML = kidSVG(look, mood, ca
 function bubble(el, html){ el.innerHTML = html; el.classList.remove('pop'); void el.offsetWidth; el.classList.add('pop'); }
 function hearts(n, el){ const r = el.getBoundingClientRect(); for (let i = 0; i < n; i++) { const h = document.createElement('div'); h.className = 'heart'; h.textContent = pick(['❤️', '💖', '✨', '💕']); h.style.left = (r.left + r.width * (.2 + rnd() * .6)) + 'px'; h.style.top = (r.top + r.height * .3) + 'px'; h.style.animationDelay = (i * .12) + 's'; document.body.appendChild(h); setTimeout(() => h.remove(), 2200); } }
 function fitAll(){
-  document.querySelectorAll('.q').forEach(q => { const b = q.parentElement; let fs = parseFloat(getComputedStyle(document.documentElement).fontSize) * 2.3; q.style.fontSize = fs + 'px'; let g = 0; while ((q.scrollWidth > b.clientWidth - 16 || q.scrollHeight > b.clientHeight - 8) && fs > 16 && g++ < 60) { fs *= .93; q.style.fontSize = fs + 'px'; } });
+  document.querySelectorAll('.q').forEach(q => { const b = q.parentElement; let fs = parseFloat(getComputedStyle(document.documentElement).fontSize) * 2.3; q.style.fontSize = fs + 'px'; let g = 0; while ((q.scrollWidth > q.clientWidth + 1 || q.scrollHeight > b.clientHeight - 12) && fs > 16 && g++ < 60) { fs *= .93; q.style.fontSize = fs + 'px'; } });
   document.querySelectorAll('.ans:not(.good)').forEach(a => { a.style.fontSize = ''; let fs = parseFloat(getComputedStyle(a).fontSize), g = 0; while (a.scrollWidth > a.clientWidth + 1 && fs > 14 && g++ < 40) { fs *= .92; a.style.fontSize = fs + 'px'; } });
   app.classList.toggle('tight', app.scrollHeight > app.clientHeight + 2 && screen === 'lesson');
 }
@@ -760,7 +928,7 @@ function viewName(){
 function nextUnit(){ return UNITS.findIndex((u, j) => did(j) == null); }
 function weakUnit(){ let m = 101, c = []; UNITS.forEach((u, i) => { const v = did(i) || 0; if (v < m) { m = v; c = [i]; } else if (v === m) c.push(i); }); return pick(c); }
 const fullN = () => UNITS.filter((u, i) => did(i) === 100).length;
-function rank(){ const h = S.hearts; return h >= 200 ? '數學之神' : h >= 120 ? '我的偶像' : h >= 60 ? '超厲害' : h >= 20 ? '好厲害' : '新手老師'; }
+function rank(){ const h = S.hearts; return h >= 600 ? '傳奇老師' : h >= 400 ? '大師的大師' : h >= 200 ? '數學之神' : h >= 120 ? '我的偶像' : h >= 60 ? '超厲害' : h >= 20 ? '好厲害' : '新手老師'; }
 function viewHome(){
   const i = nextUnit(), u = UNITS[i < 0 ? 0 : i];
   const look = curLook();
@@ -920,16 +1088,25 @@ function showScore(){
 }
 
 /* ---------- 畢業典禮 ---------- */
+const MS = {
+  2: { card: () => `<small>畢業證書</small>${KN()}　國中畢業 🎓<small>指導老師：${GRANDPA}${T()}</small>`, line: () => tt('$！我國中畢業了！<br>都是$教的，謝謝你！'), btn: '▶ 升上高中', cap: true },
+  5: { card: () => `<small>畢業證書</small>${KN()}　高中畢業 🎓<small>指導老師：${GRANDPA}${T()}</small>`, line: () => tt('$！我高中畢業了！<br>都是$教的，謝謝你！'), btn: '▶ 升上大學', cap: true },
+  6: { card: () => `<small>畢業證書</small>${KN()}　大學畢業 🎓<small>指導老師：${GRANDPA}${T()}</small>`, line: () => tt('$！我大學畢業了！<br>我想像$一樣研究數學，<br>我要考數學研究所！'), btn: '▶ 準備考研究所', cap: true },
+  7: { card: () => `<small>🎉 錄取通知</small>數學研究所<small>錄取：${KN()}</small>`, line: () => tt('$！我考上數學研究所了！<br>都是$從小教我的！'), btn: '▶ 開始讀碩士' },
+  8: { card: () => `<small>碩士論文・謝辭</small>感謝我的${T()}<small>${GRANDPA}，是他讓我愛上數學</small>`, line: () => tt('$！我碩士畢業了！<br>論文第一頁，<br>寫的是$的名字！'), btn: '▶ 繼續讀博士', cap: true },
+  9: { card: () => `<small>學位證書</small>數學博士 🎓<small>${KN()}・最重要的老師：${GRANDPA}</small>`, line: () => tt('$，我是數學博士了！<br>但我心中最厲害的老師，<br>永遠是$！'), btn: '▶ 成為數學家', cap: true },
+  10: { card: () => `<small>🏅 國際數學大獎</small>「${GRANDPA}定理」<small>證明者：${KN()}・啟蒙老師：${T()}</small>`, line: () => tt(`$！我證明了新的定理，<br>取名叫「${GRANDPA}定理」！<br>全世界都會念到你的名字！`), btn: '🏠 回家' },
+};
 function viewGrad(ui){
-  const which = GRAD[ui], look = LOOK[UNITS[ui].s];
-  const line = which === '大學' ? tt('$！我大學畢業了！<br>我也想當數學老師，<br>跟$一樣！') : tt(`$！我${which}畢業了！<br>都是$教的，謝謝你！`);
+  const st = GRAD[ui], m = MS[st], look = LOOK[UNITS[ui].s];
+  const line = m.line();
   app.innerHTML = `<div class="examwrap"><div class="bubble"></div><div class="kid big"></div>
-    <div class="diploma"><small>畢業證書</small>${KN()}　${which}畢業 🎓<small>指導老師：${GRANDPA}${T()}</small></div>
-    <button class="big-btn" id="b-next">${which === '大學' ? '🏠 回家' : '▶ 升上' + (which === '國中' ? '高中' : '大學')}</button></div>`;
-  setKid(app.querySelector('.kid'), look, 'adore', 'jump', true);
+    <div class="diploma">${m.card()}</div>
+    <button class="big-btn" id="b-next">${m.btn}</button></div>`;
+  setKid(app.querySelector('.kid'), look, 'adore', 'jump', !!m.cap);
   bubble(app.querySelector('.bubble'), line); say(line); sfx.fan(); confetti(220);
-  S.hearts += 10; save();
-  app.querySelector('#b-next').onclick = () => { sfx.tap(); if (which === '大學') go('home'); else go('lesson', ui + 1); };
+  S.hearts += st >= 7 ? 20 : 10; save();
+  app.querySelector('#b-next').onclick = () => { sfx.tap(); if (st === 10) go('home'); else go('lesson', ui + 1); };
 }
 
 /* ---------- 彩帶 ---------- */
