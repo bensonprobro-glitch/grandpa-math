@@ -160,6 +160,18 @@ sup,sub{font-size:.6em;line-height:0}
 /* 選稱呼 */
 .pick3{display:grid;grid-template-columns:1fr;gap:.45rem}
 .names{display:grid;grid-template-columns:1fr 1fr;gap:.45rem}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:.35rem}
+.grid2 .soft-btn{min-height:2.1rem;font-size:.9rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.tiles{display:grid;grid-template-columns:1fr 1fr 1fr;gap:.35rem}
+.tile{background:var(--card);border-radius:.6rem;padding:.25rem .3rem;box-shadow:0 .12rem 0 var(--card-edge);text-align:center}
+.tile span{display:block;font-size:.6rem;color:var(--ink-soft)}
+.tile b{font-size:1.3rem;color:var(--board);font-variant-numeric:tabular-nums}.tile small{font-size:.55rem;margin-left:.1em}
+.logrow{display:flex;justify-content:space-between;align-items:center;background:var(--card);border-radius:.5rem;padding:.15rem .5rem;font-size:.8rem;box-shadow:0 .1rem 0 var(--card-edge)}
+.logrow .sc{font-family:var(--f-hand);color:var(--red);font-size:1.2rem}
+.codebox{background:var(--board);color:var(--chalk);border-radius:.6rem;padding:.4rem;text-align:center;display:flex;flex-direction:column;gap:.15rem}
+.codebox small{font-size:.6rem;color:var(--chalk-dim)}
+.codebox b{font-family:var(--f-math);font-size:1.9rem;letter-spacing:.12em}
+#codein{font:inherit;font-size:1.5rem;font-weight:900;text-align:center;letter-spacing:.1em;padding:.3rem;border:.12rem solid var(--card-edge);border-radius:.6rem;background:var(--card);color:var(--ink);width:100%;box-sizing:border-box;-webkit-user-select:text;user-select:text;text-transform:uppercase}
 .own{display:flex;flex-direction:column;gap:.45rem}
 #kidname{font:inherit;font-size:1.6rem;font-weight:900;text-align:center;padding:.3rem;border:.12rem solid var(--card-edge);border-radius:.6rem;background:var(--card);color:var(--ink);width:100%;box-sizing:border-box;-webkit-user-select:text;user-select:text}
 #kidname:focus{outline:4px solid var(--gold);outline-offset:2px}
@@ -581,14 +593,45 @@ const KIDNAMES = ['小寶', '小明', '阿弟', '小胖'];
 
 /* ================= 存檔 ================= */
 const KEY = 'yesun-math-v2';
-const S = { title: '', kid: '', done: {}, hearts: 0, seenIntro: false, voice: true };
+const S = { title: '', kid: '', done: {}, hearts: 0, seenIntro: false, voice: true, code: '', stat: {}, log: [] };
 let DB = null;
 try { const s = JSON.parse(localStorage.getItem(KEY) || 'null'); if (s) Object.assign(S, s);
   else { const o = JSON.parse(localStorage.getItem('yesun-math-v1') || 'null'); if (o) { Object.assign(S, o, { done: {} }); for (const k in o.done || {}) if (OLD_IDS[k]) S.done[OLD_IDS[k]] = o.done[k]; } } } catch (e) {}
+const CODE_ABC = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+function newCode(){ let c = ''; try { const a = crypto.getRandomValues(new Uint8Array(8)); for (const x of a) c += CODE_ABC[x % 32]; } catch (e) { for (let i = 0; i < 8; i++) c += CODE_ABC[Math.floor(Math.random() * 32)]; } return c; }
+function fixState(){ if (!S.code) S.code = newCode(); S.stat = Object.assign({ q: 0, first: 0, full: 0, days: 0, last: '' }, S.stat || {}); if (!Array.isArray(S.log)) S.log = []; if (!S.done || typeof S.done !== 'object') S.done = {}; }
+fixState();
+function localSave(){ try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {} }
 function save(){
-  try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {}
+  S.at = Date.now(); localSave();
   if (DB) DB.set({ state: JSON.stringify(S), at: Date.now() }).catch(() => {});
+  clearTimeout(cloudT); cloudT = setTimeout(pushCloud, 700);
 }
+/* 雲端存檔（Supabase）：不用登入，用 8 碼存檔碼認人 */
+const SB = { url: 'https://ljhwhhrqidcarywunyfj.supabase.co', key: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxqaHdoaHJxaWRjYXJ5d3VueWZqIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTI5MTg4NTgsImV4cCI6MjEwODQ5NDg1OH0.GRRpBCofDRBgHywTmfh-9xOPIgOrjYUAOKPHpLq3OrM' };
+const cloud = { st: '' }; let cloudT = 0;
+function rpc(fn, body){ return fetch(SB.url + '/rest/v1/rpc/' + fn, { method: 'POST', headers: { apikey: SB.key, Authorization: 'Bearer ' + SB.key, 'Content-Type': 'application/json' }, body: JSON.stringify(body), keepalive: true }).then(r => { if (!r.ok) throw new Error('http ' + r.status); return r.json(); }); }
+const cloudText = () => cloud.st === 'ok' ? '☁️ 進度已存到雲端' : cloud.st === 'err' ? '☁️ 沒網路時先存在手機，有網路會自動補存' : '☁️ 存檔中…';
+function updCloud(){ const el = document.getElementById('cloud'); if (el) el.textContent = cloudText(); }
+function pushCloud(){ if (!S.title) return; clearTimeout(cloudT); cloud.st = cloud.st || 'saving'; rpc('gm_save', { p_code: S.code, p_state: S }).then(ok => { cloud.st = ok ? 'ok' : 'err'; updCloud(); }).catch(() => { cloud.st = 'err'; updCloud(); }); }
+const prog = st => Object.keys(st.done || {}).length * 100000 + (st.hearts || 0) * 10 + ((st.stat && st.stat.q) || 0) / 1000;
+function adopt(r){ for (const k of Object.keys(S)) delete S[k]; Object.assign(S, { title: '', kid: '', done: {}, hearts: 0, seenIntro: false, voice: true, code: '', stat: {}, log: [] }, r); fixState(); localSave(); }
+async function pullCloud(){
+  try {
+    const r = await rpc('gm_load', { p_code: S.code });
+    if (r && typeof r === 'object' && prog(r) > prog(S)) { adopt(r); if (['home', 'setup', 'name', 'rec'].includes(screen)) go(!S.title ? 'setup' : !S.kid ? 'name' : screen === 'rec' ? 'rec' : 'home'); }
+    cloud.st = 'ok'; updCloud(); if (!r || prog(S) > prog(r)) pushCloud();
+  } catch (e) { cloud.st = 'err'; updCloud(); }
+}
+async function restoreCode(code){
+  code = (code || '').toUpperCase().replace(/[^A-Z0-9]/g, '');
+  if (code.length !== 8) return '存檔碼是 8 個字';
+  try { const r = await rpc('gm_load', { p_code: code }); if (!r || typeof r !== 'object') return '找不到這組存檔碼'; adopt(Object.assign({}, r, { code })); cloud.st = 'ok'; return ''; }
+  catch (e) { return '現在連不上網路，等一下再試'; }
+}
+addEventListener('online', pushCloud);
+document.addEventListener('visibilitychange', () => { if (document.hidden && cloudT) pushCloud(); });
+setTimeout(pullCloud, 50);
 (async () => { // 登入 claude.ai 時，進度也存到雲端（換手機不會不見）
   try {
     if (!window.claude || !window.claude.use) return;
@@ -682,7 +725,7 @@ function fitAll(){
 }
 addEventListener('resize', () => requestAnimationFrame(fitAll));
 
-function go(name, arg){ screen = name; ({ setup: viewSetup, name: viewName, home: viewHome, map: viewMap, lesson: viewLesson, exam: viewExam, grad: viewGrad })[name](arg); requestAnimationFrame(fitAll); }
+function go(name, arg){ screen = name; ({ setup: viewSetup, name: viewName, rec: viewRec, home: viewHome, map: viewMap, lesson: viewLesson, exam: viewExam, grad: viewGrad })[name](arg); requestAnimationFrame(fitAll); }
 
 function viewSetup(){
   app.innerHTML = `<div class="homewrap"><div class="homescene"><div class="bubble">你是我的…？</div><div class="kid big"></div></div>
@@ -704,24 +747,28 @@ function viewName(){
 }
 
 function nextUnit(){ return UNITS.findIndex((u, j) => did(j) == null); }
+function weakUnit(){ let m = 101, c = []; UNITS.forEach((u, i) => { const v = did(i) || 0; if (v < m) { m = v; c = [i]; } else if (v === m) c.push(i); }); return pick(c); }
+const fullN = () => UNITS.filter((u, i) => did(i) === 100).length;
 function rank(){ const h = S.hearts; return h >= 200 ? '數學之神' : h >= 120 ? '我的偶像' : h >= 60 ? '超厲害' : h >= 20 ? '好厲害' : '新手老師'; }
 function viewHome(){
   const i = nextUnit(), u = UNITS[i < 0 ? 0 : i];
   const look = curLook();
   let line;
   if (!S.seenIntro) line = `${T()}！我是${KN()}！<br>可以教我數學嗎？`;
-  else if (i < 0) line = `${T()}是我的偶像！<br>再考我一次！`;
+  else if (i < 0) line = fullN() === UNITS.length ? `${T()}是數學之神！<br>全部都 100 分了！` : `${T()}～我們把每一科<br>都考 100 分好不好？`;
   else line = `${T()}～今天教我<br>「${u.t}」好不好？`;
   const doneN = Object.keys(S.done).length;
   app.innerHTML = `<div class="homewrap">
     <div class="logo">爺孫數學課<small>${GRANDPA}老師・${STAGES[u.s]}・第 ${Math.min(doneN + 1, UNITS.length)} 課</small></div>
     <div class="homescene"><div class="bubble">${line}</div><div class="kid big"></div></div>
-    <div class="stat"><span>❤️ ${S.hearts}</span><span>📜 ${doneN} 張考卷</span><span>🏅 ${rank()}</span></div>
+    <div class="stat"><span>❤️ ${S.hearts}</span><span>💯 ${fullN()}/${UNITS.length}</span><span>🏅 ${rank()}</span></div>
     <button class="big-btn" id="b-go">${S.seenIntro ? '▶ 開始教' : '好！來！'}</button>
-    <div class="row"><button class="soft-btn" id="b-map">📚 全部課程</button><button class="soft-btn" id="b-voice">${S.voice ? '🔊 開' : '🔇 關'}</button><button class="soft-btn" id="b-name">✏️ ${KN()}</button></div>
+    <div class="grid2"><button class="soft-btn" id="b-map">📚 課程</button><button class="soft-btn" id="b-rec">📜 紀錄</button><button class="soft-btn" id="b-voice">${S.voice ? '🔊 聲音開' : '🔇 聲音關'}</button><button class="soft-btn" id="b-name">✏️ ${KN()}</button></div>
+    <div class="tiny" id="cloud">${cloudText()}</div>
   </div>`;
   setKid(app.querySelector('.kid'), look, S.seenIntro ? 'happy' : 'ask');
-  app.querySelector('#b-go').onclick = () => { ac(); sfx.tap(); S.seenIntro = true; save(); go('lesson', i < 0 ? R(0, UNITS.length - 1) : i); };
+  app.querySelector('#b-go').onclick = () => { ac(); sfx.tap(); S.seenIntro = true; save(); go('lesson', i < 0 ? weakUnit() : i); };
+  app.querySelector('#b-rec').onclick = () => { sfx.tap(); go('rec'); };
   app.querySelector('#b-map').onclick = () => { sfx.tap(); go('map'); };
   app.querySelector('#b-name').onclick = () => { sfx.tap(); go('name'); };
   app.querySelector('#b-voice').onclick = () => { S.voice = !S.voice; save(); sfx.tap(); if (S.voice) say(T() + '～'); go('home'); };
@@ -745,6 +792,26 @@ function viewMap(){
   const n = app.querySelector('.unit.next'); if (n) n.scrollIntoView({ block: 'center' });
 }
 
+/* ---------- 紀錄 ---------- */
+function viewRec(){
+  const st = S.stat, md = t => { const d = new Date(t); return (d.getMonth() + 1) + '/' + d.getDate(); };
+  const tiles = [['教了', st.q, '題'], ['一次就對', st.first, '題'], ['考卷', S.log.length, '張'], ['滿分', st.full, '張'], ['一起上課', st.days, '天'], ['崇拜', S.hearts, '❤️']];
+  const rows = S.log.slice(0, 40).map(l => { const u = ALLU[l.u]; return `<div class="logrow"><span>${md(l.t)}　${u ? STAGES[u.s] + '・' + u.t : ''}</span><span class="sc">${l.s}</span></div>`; }).join('') || '<div class="tiny">還沒有考卷，先去教一課吧！</div>';
+  const code = S.code.slice(0, 4) + ' ' + S.code.slice(4);
+  app.innerHTML = `<div class="top"><button class="home" id="b-home" aria-label="回首頁">🏠</button><div class="dots" style="font-size:1.1rem;font-weight:900;color:var(--board)">${T()}的紀錄</div><span class="love">❤️ ${S.hearts}</span></div>
+  <div class="mapwrap">
+    <div class="tiles">${tiles.map(([a, b, c]) => `<div class="tile"><span>${a}</span><b>${b}<small>${c}</small></b></div>`).join('')}</div>
+    <div class="stage-h">最近的考卷</div>${rows}
+    <div class="stage-h">存檔碼</div>
+    <div class="codebox"><small>換手機時，輸入這組號碼就能找回進度</small><b>${code}</b><small id="cloud">${cloudText()}</small></div>
+    <button class="soft-btn" id="b-restore">🔑 輸入存檔碼找回進度</button>
+    <div class="own" id="restore" hidden><input id="codein" maxlength="9" placeholder="8 個字" autocomplete="off" autocapitalize="characters"><button class="big-btn green" id="b-do">找回</button><div class="tiny" id="rmsg"></div></div>
+  </div>`;
+  app.querySelector('#b-home').onclick = () => { sfx.tap(); go('home'); };
+  app.querySelector('#b-restore').onclick = () => { sfx.tap(); app.querySelector('#restore').hidden = false; app.querySelector('#b-restore').hidden = true; app.querySelector('#codein').focus(); };
+  app.querySelector('#b-do').onclick = async () => { const m = app.querySelector('#rmsg'); m.textContent = '找找看…'; const err = await restoreCode(app.querySelector('#codein').value); if (err) { m.textContent = err; sfx.bad(); } else { sfx.good(); go('home'); } };
+}
+
 /* ---------- 上課（5 題） ---------- */
 const PRAISE = ['$好厲害！', '哇！$是天才！', '原來是這樣！我懂了！', '$教得好清楚！', '$好聰明喔！', '我以後要跟$一樣！', '$最棒了！', '$怎麼什麼都會！', '同學都沒有$厲害！'];
 const PRAISE2 = ['對耶！謝謝$！', '原來如此！$好棒！', '喔～我懂了！'];
@@ -752,6 +819,8 @@ const ASK = ['$，這題怎麼算？', '$～教我！', '這題好難喔…', '$
 const tt = s => s.replace(/\$/g, T());
 let L = null;
 function viewLesson(ui){
+  const d = new Date(), day = d.getFullYear() + '-' + (d.getMonth() + 1) + '-' + d.getDate();
+  if (S.stat.last !== day) { S.stat.last = day; S.stat.days++; save(); }
   L = { ui, i: 0, first: 0, qs: [0, 1, 2, 3, 4].map(k => UNITS[ui].g(k)) };
   renderQ();
 }
@@ -785,7 +854,8 @@ function answer(btn, q){
   if (ok) {
     btn.classList.add('good'); sfx.good();
     let line;
-    if (L.wrong === 0) { L.first++; S.hearts++; line = tt(pick(PRAISE)); kidMood('adore', 'jump'); hearts(5, app.querySelector('.kid')); }
+    S.stat.q++;
+    if (L.wrong === 0) { L.first++; S.stat.first++; S.hearts++; line = tt(pick(PRAISE)); kidMood('adore', 'jump'); hearts(5, app.querySelector('.kid')); }
     else { line = tt(pick(PRAISE2)); kidMood('happy', 'jump'); hearts(2, app.querySelector('.kid')); }
     app.querySelector('#love').textContent = '❤️ ' + S.hearts; save();
     bubble(bub, line); say(line);
@@ -820,20 +890,21 @@ function showScore(){
   const ui = L.ui, u = UNITS[ui], look = LOOK[u.s];
   const score = 60 + L.first * 8;
   const prev = did(ui); S.done[u.id] = Math.max(prev || 0, score);
-  const bonus = score === 100 ? 3 : 1; S.hearts += bonus; save();
+  const bonus = score === 100 ? 3 : 1; S.hearts += bonus; if (score === 100) S.stat.full++;
+  S.log.unshift({ u: u.id, s: score, t: Date.now() }); S.log = S.log.slice(0, 300); save();
   const line = score === 100 ? tt(`$！我考 100 分！<br>全班第一名！`) : score >= 84 ? tt(`$！我考 ${score} 分！<br>老師說我進步好多！`) : tt(`我考 ${score} 分！<br>下次跟$一起拿 100！`);
   const stamp = score === 100 ? '滿分' : score >= 84 ? '讚' : '進步';
   const grad = GRAD[ui] && prev == null;
   app.innerHTML = `<div class="examwrap">
     <div class="bubble"></div>
     <div class="result"><div class="kid big"></div><div class="paper"><div class="ph">${STAGES[u.s]}・${u.t}<br>姓名：${KN()}</div><div class="score">${score}</div><div class="note">${T()}教得真好！</div><div class="stamp">${stamp}</div></div></div>
-    <div class="row" style="width:100%"><button class="soft-btn" id="b-home" style="flex:.45">🏠</button><button class="big-btn" id="b-next">${grad ? '🎓 畢業！' : ui === UNITS.length - 1 ? '再考一次 ▶' : '▶ 下一課'}</button></div>
+    <div class="row" style="width:100%"><button class="soft-btn" id="b-home" style="flex:.45">🏠</button><button class="big-btn" id="b-next">${grad ? '🎓 畢業！' : '▶ 下一課'}</button></div>
   </div>`;
   setKid(app.querySelector('.kid'), look, score >= 84 ? 'adore' : 'happy', 'jump');
   bubble(app.querySelector('.bubble'), line); say(line); sfx.fan(); confetti(score === 100 ? 160 : 70);
   setTimeout(() => hearts(6, app.querySelector('.kid')), 300);
   app.querySelector('#b-home').onclick = () => { sfx.tap(); go('home'); };
-  app.querySelector('#b-next').onclick = () => { sfx.tap(); if (grad) go('grad', ui); else go('lesson', ui === UNITS.length - 1 ? R(0, UNITS.length - 1) : ui + 1); };
+  app.querySelector('#b-next').onclick = () => { sfx.tap(); if (grad) go('grad', ui); else go('lesson', nextUnit() >= 0 ? nextUnit() : weakUnit()); };
 }
 
 /* ---------- 畢業典禮 ---------- */
